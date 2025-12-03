@@ -178,7 +178,7 @@ class OS {
   * Saves the final result to DB when finished
   */
   async g(f, s, k, m, u) {
-    this.root.innerHTML = '<i>Thinking...</i>'
+    this.root.innerHTML = 'Thinking...'
     
     // Context: We give the LLM the current file content (if any) as context
     let c = await this.read(f) || '',
@@ -243,7 +243,7 @@ class OS {
       H[RS](null, '', `#${f}`)
       
     } catch (err) {
-      this.root.innerHTML = `<pre>${err.message}</pre>`
+      this.root.innerHTML = `${err.message}`
     }
   }
 }
