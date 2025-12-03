@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <style>:root{color-scheme:dark}</style>
 <app></app>
-<script>
+<script>(() => {
+let $D = document
+
 class OS {
   constructor() {
     // Core configuration
     this.dbName = 'os'
     this.storeName = 'files'
-    this.root = document.querySelector('app')
+    this.root = $D.querySelector('app')
     this.plugins = {}
     
     // Listeners
@@ -174,7 +176,7 @@ class OS {
   
   rehydrateScripts(container) {
     container.querySelectorAll('script').forEach(oldScript => {
-      const newScript = document.createElement('script')
+      const newScript = $D.createElement('script')
       // Copy attributes (src, type, etc)
       Array.from(oldScript.attributes).forEach(attr => {
         newScript.setAttribute(attr.name, attr.value)
@@ -268,4 +270,5 @@ class OS {
 
 // Instantiate the global Operating System
 const os = new OS()
+})();
 </script>
