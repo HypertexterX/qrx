@@ -1,28 +1,38 @@
 <!DOCTYPE html>
 <app></app>
 <script>
+// Variable name dictionary
+$Q = 'querySelectorAll'
+C = 'CONTEXT'
 D = document
+F = 'files'
+GI = 'getItem'
+H = history
+IH = 'innerHTML'
+L = localStorage
+O = 'os'
+ONS = 'onsuccess'
+P = Promise
+R = 'root'
+RS = 'replaceState'
+S = 'SYSTEM'
+SI = 'setItem'
+TC = 'textContent'
+UR = 'USER_REQUEST'
 W = window
 WL = W.location
-H = history
-O = 'os'
-F = 'files'
-L = localStorage
-ONS = 'onsuccess'
-SI = 'setItem'
-RS = 'replaceState'
 
 class OS {
   constructor() {
     // Core configuration
-    this.root = D.querySelector('app')
+    this[R] = D[$Q]('app')[0]
     this.$ = {}
     
     // Listeners
     W.addEventListener('hashchange', () => this.R())
     
     // Start the system
-    this.boot()
+    this.boot(this)
   }
   
   /**
@@ -31,27 +41,27 @@ class OS {
   * 2. Runs any file starting with 'boot/'
   * 3. Routes to the current URL hash
   */
-  async boot() {
-    await this.cdb()
-    await this.b()
-    await this.R()
+  async boot(T) {
+    await T.cdb(T)
+    await T.b(T)
+    await T.R(T)
   }
   
   /**
   * Database Connection
   * Generic IndexedDB boilerplate
   */
-  cdb() {
-    return new Promise((r, re) => {
-      let q = indexedDB.open(O, 1)
+  cdb(T) {
+    return new P((r, re) => {
+      let q = indexedDB.open(O, 1), db
       q.onupgradeneeded = (e) => {
-        let db = e.target.result
+        db = e.target.result
         if (!db.objectStoreNames.contains(F)) {
           db.createObjectStore(F)
         }
       }
       q[ONS] = (e) => {
-        this.db = e.target.result
+        T.db = e.target.result
         r()
       }
       q.onerror = re
@@ -60,59 +70,63 @@ class OS {
 
   // gets database transations
   // m = mode
-  tx(m='readonly') {
-    return this.db.transaction(F, m).objectStore(F)
+  tx(T, m='readonly') {
+    return T.db.transaction(F, m).objectStore(F)
   }
   
-  async write(k, v) {
-    return new Promise((r) => this.tx('readwrite').put(v, k)[ONS] = r)
+  async write(T, k, v) {
+    return new P((r) => T.tx(T, 'readwrite').put(v, k)[ONS] = r)
   }
   
-  async read(k) {
-    return new Promise((r) => this.tx().get(k)[ONS] = (e) => r(e.target.result))
+  async read(T, k) {
+    return new P((r) => T.tx(T, ).get(k)[ONS] = (e) => r(e.target.result))
   }
   
-  async getKeys() {
-    return new Promise((r) => this.tx().getAllKeys()[ONS] = (e) => r(e.target.result))
+  async getKeys(T) {
+    return new P((r) => T.tx(T, ).getAllKeys()[ONS] = (e) => r(e.target.result))
   }
   
   // --- Plugin Architecture ---
   // n = name
   // p = plugin factory
-  use(n, p) {
-    this.$[n] = p
+  use(T, n, p) {
+    T.$[n] = p
     // If plugin is a function, run it immediately passing the OS instance
-    if (typeof p === 'function') p(this)
+    if (typeof p == 'function') p(T)
   }
   
   // --- Kernel Logic ---
   
-  async b() {
-    let k = await this.getKeys(),
+  async b(T) {
+    let k = await T.getKeys(T),
       // Filter for any file starting with "boot" (e.g., boot/drivers, boot/theme)
-      b = k.filter(k => k.startsWith('boot')).sort()
+      b = k.filter(k => k.startsWith('boot')).sort(),
+      s
     
     for (let f of b) {
-      let s = await this.read(f)
+      s = await T.read(T, f)
       try {
         // Execute boot scripts within the context of 'os'
-        (new Function(O, s))(this)
+        (new Function(O, s))(T)
       } catch (e) {
         console.error(`[Boot Error] ${f}:`, e)
       }
     }
   }
   
-  async R() {
+  async R(T) {
     // Parse URL: #filename?cmd=val
     let h = WL.hash.slice(1) || 'home',
       [fp, q] = h.split('?'),
       p = new URLSearchParams(q),
-      hn
+      hn,
+      api,
+      k,
+      c
     
     // 1. Handle Direct Write (?w=content)
     if (p.has('w')) {
-      await this.write(fp, p.get('w'))
+      await T.write(T, fp, p.get('w'))
       // Clean URL after write so reloading doesn't re-write
       H[RS](null, '', `#${fp}`)
     }
@@ -121,7 +135,7 @@ class OS {
     // k = api key
     // m = api model
     // s = system prompt
-    let api = ['k', 'm', 's']
+    api = ['k', 'm', 's']
     for (let a of api) {
       if (p.has(a)) {
         L[SI](a, p.get(a))
@@ -130,45 +144,45 @@ class OS {
       }
     }
     
-    let k = L.getItem('k')
+    k = L[GI]('k')
     
     // 2. Handle AI Generation (?p=...)
     if (p.has('p')) {
       if (!k) {
-        this.r(`missing api key`)
+        T.r(T, `missing api key`)
         return
       }
       // We pass the full current URL as the request, as it contains the prompt in ?p=
-      await this.g(fp, L.getItem('s'), k, L.getItem('m'), WL.href)
+      await T.g(T, fp, L[GI]('s'), k, L[GI]('m'), WL.href)
       return
     }
     
     // 3. Standard Load
     // Load content from DB and render into <app>
-    let c = await this.read(fp)
+    c = await T.read(T, fp)
     
     // If no content, show minimal error allowing for creation
-    this.r(c || '')
+    T.r(T, c || '')
   }
     
   /**
   * Renders HTML content and re-activates <script> tags
   * Browsers do not execute scripts inserted via innerHTML automatically
   */
-  r(h) {
-    this.root.innerHTML = h
-    this.RS(this.root)
+  r(T, h) {
+    T[R][IH] = h
+    T.RS(T, T[R])
   }
   
   // Rehydrate scripts
-  RS(c) {
-    c.querySelectorAll('script').forEach(o => {
+  RS(T, c) {
+    c[$Q]('script').forEach(o => {
       let s = D.createElement('script')
       // Copy attributes (src, type, etc)
       Array.from(o.attributes).forEach(attr => {
         s.setAttribute(attr.name, attr.value)
       })
-      s.textContent = o.textContent
+      s[TC] = o[TC]
       o.parentNode.replaceChild(s, o)
     })
   }
@@ -177,56 +191,58 @@ class OS {
   * Streams from Gemini API directly into the DOM
   * Saves the final result to DB when finished
   */
-  async g(f, s, k, m, u) {
-    this.root.innerHTML = 'Thinking...'
+  async g(T, f, s, k, m, u) {
+    T[R][IH] = 'Thinking...'
     
     // Context: We give the LLM the current file content (if any) as context
-    let c = await this.read(f) || '',
+    let c = await T.read(T, f) || '',
       p = {
         contents: [{
           parts: [{ 
-            text: `<SYSTEM>${s}</SYSTEM><CONTEXT>${c}</CONTEXT><USER_REQUEST>${u}</USER_REQUEST>` 
+            text: `<${S}>${s}</${S}><${C}>${c}</${C}><${UR}>${u}</${UR}>` 
           }]
         }]
-      }
+      },
+      r,e,re,done,value,ls,l,j,t
+
     
     try {
       // Added &alt=sse to force Server-Sent Events format so 'data: ' parsing works
-      let r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?key=${k}&alt=sse`, {
+      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?key=${k}&alt=sse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(p)
       })
       
       if (!r.ok) {
-        let e = await r.text()
+        e = await r.text()
         throw new Error(`API Error ${r.status}: ${e}`)
       }
       
-      let re = r.body.getReader(), de = new TextDecoder(), b = '', fT = ''
+      re = r.body.getReader(), de = new TextDecoder(), b = '', fT = ''
       
       // Stream Loop
       while (true) {
-        let { done, value } = await re.read()
+        ({ done, value } = await re.read())
         if (done) break
         
         b += de.decode(value, { stream: true })
         
         // Parse Gemini's JSON stream format (SSE)
         // Data comes in chunks: "data: { ... }\n\n"
-        let ls = b.split('\n')
+        ls = b.split('\n')
         b = ls.pop() // Keep incomplete line in buffer
         
-        for (let l of ls) {
+        for (l of ls) {
           if (l.startsWith('data: ')) {
             try {
-              let j = JSON.parse(l.slice(6)),
-                t = j.candidates?.[0]?.content?.parts?.[0]?.text
+              j = JSON.parse(l.slice(6))
+              t = j.candidates?.[0]?.content?.parts?.[0]?.text
               if (t) {
                 fT += t
                 // Live update URL (optional visual feedback) or partial DOM
                 // For simplicity/stability, we update the whole root here
-                this.root.innerHTML = fT
+                T[R][IH] = fT
               }
             } catch (e) { /* Ignore parsing errors on partial chunks */ }
           }
@@ -234,16 +250,16 @@ class OS {
       }
       
       // Final Save
-      await this.write(f, fT)
+      await T.write(T, f, fT)
       
       // Final Execution (Scripts won't run until this call)
-      this.RS(this.root)
+      T.RS(T, T[R])
       
       // Clean URL
       H[RS](null, '', `#${f}`)
       
     } catch (err) {
-      this.root.innerHTML = `${err.message}`
+      T[R][IH] = `${err.message}`
     }
   }
 }
