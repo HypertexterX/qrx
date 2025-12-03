@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<style>:root{color-scheme:light dark}</style>
+<app></app>
+<script id="_">;(async () => {
+  // URL Normalization and Redirection
+  let $L = location,
+      $P = $L.pathname.slice(1).replace(/^\/|\/$/g, ''),
+      $H = $L.hash.slice(1).replace(/^\/|\/$/g, ''),
+      tC = 'textContent',
+      H = 'home'
+  if (!$P || !$H) {
+    $L.replace(`/${$P || H}#${$H || H}`)
+    return
+  }
+
+  // Basic setup and shorthands
+  let d = document,
+      b = d.querySelector('app'),
+      g = k => localStorage.getItem(k)
+
+  // Multi-database setup
+  let D = {}, // DB connection cache
+      N = $P, // Current DB Name from normalized path
+      // Helper to get/open a DB connection from cache or new
+      GDB = n => {
+        if (!D[n]) D[n] = new Promise(r => {
+          let R = indexedDB.open(n, 1)
+          R.onupgradeneeded = e => {
+            let s = e.target.result
+            s.createObjectStore('f', { keyPath: 'k' })
+            s.createObjectStore('h', { autoIncrement: true })
+          }
+          R.onsuccess = e => r(e.target.result)
+        })
+        return D[n]
+      },
+      db = await GDB(N) // Main DB connection
+
+  // Database operation helpers now accept an optional DB handle
+  let o = (db, s, t, ...a) => new Promise(r => {
+        db.transaction(s, 'readwrite').objectStore(s)[t](...a).onsuccess = e => r(e.target.result)
+      }),
+      $r = async (k, n = N) => { let d = await GDB(n); return o(d, 'f', 'get', k).then(r => r?.value || '') },
+      $rf = (P, wrap, n = N) => new Promise(async R => {
+        let B = [],
+            d = await GDB(n),
+            C = d.transaction('f').objectStore('f').openCursor(IDBKeyRange.bound(P, P + '\uffff'))
+        C.onsuccess = e => {
+          let c = e.target.result
+          c ? (B.push(wrap ? `<file "${c.key}">${c.value.value}</file>` : c.value.value), c.continue()) : R(B)
+        }
+      })
+
+  // The main execution function, runs on load and hash change
+  let run = async () => {
+    // Log every URL change to history for auditability
+    await o(db, 'h', 'add', { t: new Date(), u: $L.href })
+
+    // Parse page key ($p) and command string ($cmd) from URL
+    let u = $L.hash.slice(1).replace(/^\/|\/$/g, ''),
+        [$c, $cmd] = u.split('?'),
+        $p = $c || H
+
+    // Initialize savable source ($s) and live accumulator ($a)
+    let GB = await $r('boot'),
+        $s = await $r($p),
+        $a = GB + $s
+
+    // Main command processing block
+    if ($cmd) {
+      // Initialize per-run state (model, keys, target, etc)
+      let S = {
+        m: g('m'),
+        k: g('k'),
+        s: '',
+        t: $p
+      }
+
+      // Create an ordered queue of commands
+      let cmds = $cmd.split('&')
+
+      // Sequentially execute each command from the URL
+      for (let cmd of cmds) {
+        let [K, ...V] = cmd.split('='),
+            v = decodeURIComponent(V.join('='))
+        
+        // State-setting commands
+        if ('hmk'.includes(K)) S[K] = v
+        else if (K == 's') S.s = v
+        else if (K == 't') S.t = v || $p
+        // Action commands
+        else if (K == 'w') {
+          $s = v
+          $a = v
+          await o(db, 'f', 'put', { k: S.t, value: $s })
+        } else if (K == 'b' || K == 's') { // Combined handler for b and s
+          let [dbn, key] = S.s.includes('#') ? S.s.split('#') : [N, S.s],
+              iF = key.endsWith('*'),
+              P = iF ? key.slice(0, -1) : key
+
+          if (K == 'b') {
+             [dbn, key] = v.includes('#') ? v.split('#') : [N, v]
+             iF = key.endsWith('*')
+             P = iF ? key.slice(0, -1) : key
+             let B = iF ? await $rf(P, false, dbn) : [await $r(P, dbn)]
+             $a = B.join('\n') + $a
+          }
+          if (K == 's') {
+             let B = iF ? await $rf(P, false, dbn) : [await $r(P, dbn)]
+             S.s = B.join('\n')
+          }
+        } else if (K == 'x') {
+          eval(v)
+        } else if (K == 'p') {
+          let cc = $a,
+              sp = S.s,
+              pt = v,
+              injs
+
+          if (pt.includes('@$')) {
+            pt = pt.replace(/@\$/g, (d.getElementById('_')?.[tC] || '')) // Use regex for global replacement
+          }
+
+          injs = pt.match(/@(?:[\w-]+#)?[\w\/-]+\*?/g) || []
+
+          for (let inj of injs) {
+            let key = inj.slice(1),
+                [dbn, fK] = key.includes('#') ? key.split('#') : [N, key],
+                iF = fK.endsWith('*'),
+                P = iF ? fK.slice(0, -1) : fK
+
+            let B = iF ? await $rf(P, true, dbn) : [await $r(P, dbn)]
+            pt = pt.replace(inj, B.join('\n'))
+          }
+
+          // Assemble payload and call the LLM
+          let B = {
+            contents: [{
+              parts: [{ text: `<sys>${sp}</sys><url>${$L.href}</url><page>${cc}</page><prompt>${pt}</prompt>` }]
+            }]
+          }
+          
+          let Z = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${S.m}:generateContent?key=${S.k}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(B)
+          })
+          let j = await Z.json(),
+              R = j.candidates[0].content.parts[0].text
+          if (!Z.ok) throw j.error
+          
+          $s = $a = R
+          await o(db, 'f', 'put', { k: S.t, value: $s })
+        }
+      }
+      // Clean the URL
+      history.replaceState(null, '', `/${N}#${$p}`)
+    }
+
+    // Paint the final state and re-hydrate scripts
+    b.innerHTML = $a
+    b.querySelectorAll('script').forEach(s => {
+      let S = d.createElement('script')
+      for (let a of s.attributes) S.setAttribute(a.name, a.value)
+      S[tC] = s[tC]
+      s.replaceWith(S)
+    })
+  }
+
+  // Attach the executor to URL changes and run on initial load
+  window.addEventListener('hashchange', run)
+  run()
+})()</script>

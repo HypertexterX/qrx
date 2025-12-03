@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<style>:root{color-scheme:light dark}</style>
+<app></app>
+<script id="_">;(async () => {
+  // URL Normalization and Redirection
+  let locationObj = location,
+      // Extract database name from path (e.g., example.com/wiki -> 'wiki')
+      currentDbName = locationObj.pathname.slice(1).replace(/^\/|\/$/g, ''),
+      // Extract hash content (e.g., #home -> 'home')
+      urlHash = locationObj.hash.slice(1).replace(/^\/|\/$/g, ''),
+      textContentProp = 'textContent',
+      DEFAULT_HOME = 'home'
+
+  // If path or hash is missing, redirect to default structure /home#home
+  if (!currentDbName || !DEFAULT_HOME) {
+    locationObj.replace(`/${currentDbName || DEFAULT_HOME}#${urlHash || DEFAULT_HOME}`)
+    return
+  }
+
+  // Basic setup and shorthands
+  let doc = document,
+      appElement = doc.querySelector('app'),
+      getFromLocalStorage = key => localStorage.getItem(key)
+
+  // Multi-database setup
+  let dbConnectionCache = {}, // Cache for open DB connections
+      // Helper to get/open a DB connection from cache or create new one
+      getDbConnection = name => {
+        if (!dbConnectionCache[name]) dbConnectionCache[name] = new Promise(resolve => {
+          let request = indexedDB.open(name, 1)
+          request.onupgradeneeded = event => {
+            let dbInstance = event.target.result
+            // Store 'f': Files (key-value storage)
+            dbInstance.createObjectStore('f', { keyPath: 'k' })
+            // Store 'h': History (audit log)
+            dbInstance.createObjectStore('h', { autoIncrement: true })
+          }
+          request.onsuccess = event => resolve(event.target.result)
+        })
+        return dbConnectionCache[name]
+      },
+      // Open the connection for the current URL path
+      mainDb = await getDbConnection(currentDbName)
+
+  // Database operation helpers
+  // performTransaction: Generic wrapper for IDB transactions
+  let performTransaction = (dbInstance, storeName, action, ...args) => new Promise(resolve => {
+        dbInstance.transaction(storeName, 'readwrite').objectStore(storeName)[action](...args).onsuccess = event => resolve(event.target.result)
+      }),
+      // readFile: Get single file content. Returns empty string if missing.
+      readFile = async (key, dbName = currentDbName) => { 
+        let dbInstance = await getDbConnection(dbName)
+        return performTransaction(dbInstance, 'f', 'get', key).then(res => res?.value || '') 
+      },
+      // readFilesPrefix: Get multiple files via cursor (if key ends in *)
+      readFilesPrefix = (prefix, wrapInTags, dbName = currentDbName) => new Promise(async resolve => {
+        let results = [],
+            dbInstance = await getDbConnection(dbName),
+            // Open cursor for keys starting with 'prefix'
+            cursorReq = dbInstance.transaction('f').objectStore('f').openCursor(IDBKeyRange.bound(prefix, prefix + '\uffff'))
+        
+        cursorReq.onsuccess = event => {
+          let cursor = event.target.result
+          // If cursor exists, push value (optionally wrapped in XML tags) and continue
+          cursor ? (results.push(wrapInTags ? `<file "${cursor.key}">${cursor.value.value}</file>` : cursor.value.value), cursor.continue()) : resolve(results)
+        }
+      })
+
+  // The main execution function, runs on load and hash change
+  let executeRoute = async () => {
+    // Log every URL change to history for auditability
+    await performTransaction(mainDb, 'h', 'add', { t: new Date(), u: locationObj.href })
+
+    // Parse page key (pageKey) and command string (cmdString) from URL
+    // Format: /dbName#pageKey?cmd=val&cmd2=val2
+    let cleanHash = locationObj.hash.slice(1).replace(/^\/|\/$/g, ''),
+        [pagePart, cmdString] = cleanHash.split('?'),
+        pageKey = pagePart || DEFAULT_HOME
+
+    // Initialize savable source (pageContent) and live accumulator (renderBuffer)
+    let globalBootCode = await readFile('boot'),
+        pageContent = await readFile(pageKey),
+        renderBuffer = globalBootCode + pageContent
+
+    // Main command processing block
+    if (cmdString) {
+      // Initialize per-run state 
+      let state = {
+        model: getFromLocalStorage('m'), // LLM Model Name
+        key: getFromLocalStorage('k'),   // API Key
+        contextSource: '',               // Context/System Prompt
+        targetFile: pageKey              // Target file to write to
+      }
+
+      // Create an ordered queue of commands
+      let commands = cmdString.split('&')
+
+      // Sequentially execute each command from the URL
+      for (let command of commands) {
+        let [cmdKey, ...cmdValParts] = command.split('='),
+            cmdValue = decodeURIComponent(cmdValParts.join('='))
+        
+        // State-setting commands: h (host/unused), m (model), k (key)
+        if ('hmk'.includes(cmdKey)) state[cmdKey] = cmdValue
+        else if (cmdKey == 's') state.contextSource = cmdValue
+        else if (cmdKey == 't') state.targetFile = cmdValue || pageKey
+        
+        // Action: 'w' (Write) - Overwrite current memory and save to DB
+        else if (cmdKey == 'w') {
+          pageContent = cmdValue
+          renderBuffer = cmdValue
+          await performTransaction(mainDb, 'f', 'put', { k: state.targetFile, value: pageContent })
+        } 
+        // Action: 'b' (Boot/Append) or 's' (Source/Context)
+        // Syntax supports cross-db: "otherDB#fileName" or folder "folderName*"
+        else if (cmdKey == 'b' || cmdKey == 's') { 
+          let [targetDb, targetKey] = state.contextSource.includes('#') ? state.contextSource.split('#') : [currentDbName, state.contextSource],
+              isFolder = targetKey.endsWith('*'),
+              prefix = isFolder ? targetKey.slice(0, -1) : targetKey
+
+          // If command came with a value, use that as the source instead of previous state
+          if (cmdKey == 'b') {
+             [targetDb, targetKey] = cmdValue.includes('#') ? cmdValue.split('#') : [currentDbName, cmdValue]
+             isFolder = targetKey.endsWith('*')
+             prefix = isFolder ? targetKey.slice(0, -1) : targetKey
+             // Append to render buffer
+             let contentBatch = isFolder ? await readFilesPrefix(prefix, false, targetDb) : [await readFile(prefix, targetDb)]
+             renderBuffer = contentBatch.join('\n') + renderBuffer
+          }
+          if (cmdKey == 's') {
+             // Load into state.contextSource
+             let contentBatch = isFolder ? await readFilesPrefix(prefix, false, targetDb) : [await readFile(prefix, targetDb)]
+             state.contextSource = contentBatch.join('\n')
+          }
+        } 
+        // Action: 'x' (Execute) - Eval arbitrary JS
+        else if (cmdKey == 'x') {
+          eval(cmdValue)
+        } 
+        // Action: 'p' (Prompt) - Send payload to LLM
+        else if (cmdKey == 'p') {
+          let currentRender = renderBuffer,
+              systemContext = state.contextSource,
+              userPrompt = cmdValue,
+              injections
+
+          // Handle @$ injection: injects the source code of this script itself
+          if (userPrompt.includes('@$')) {
+            userPrompt = userPrompt.replace(/@\$/g, (doc.getElementById('_')?.[textContentProp] || ''))
+          }
+
+          // Handle @file injections (e.g., @db#file or @file or @folder*)
+          injections = userPrompt.match(/@(?:[\w-]+#)?[\w\/-]+\*?/g) || []
+
+          for (let injectionToken of injections) {
+            let cleanKey = injectionToken.slice(1),
+                [targetDb, fileKey] = cleanKey.includes('#') ? cleanKey.split('#') : [currentDbName, cleanKey],
+                isFolder = fileKey.endsWith('*'),
+                searchPrefix = isFolder ? fileKey.slice(0, -1) : fileKey
+
+            // Fetch content, wrapping in XML tags
+            let contentBatch = isFolder ? await readFilesPrefix(searchPrefix, true, targetDb) : [await readFile(searchPrefix, targetDb)]
+            userPrompt = userPrompt.replace(injectionToken, contentBatch.join('\n'))
+          }
+
+          // Assemble JSON payload for Gemini API
+          let payload = {
+            contents: [{
+              parts: [{ text: `<sys>${systemContext}</sys><url>${locationObj.href}</url><page>${currentRender}</page><prompt>${userPrompt}</prompt>` }]
+            }]
+          }
+          
+          // Call API
+          let apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${state.model}:generateContent?key=${state.key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+          let responseJson = await apiResponse.json(),
+              generatedText = responseJson.candidates[0].content.parts[0].text
+          if (!apiResponse.ok) throw responseJson.error
+          
+          // Update memory and save result to DB
+          pageContent = renderBuffer = generatedText
+          await performTransaction(mainDb, 'f', 'put', { k: state.targetFile, value: pageContent })
+        }
+      }
+      // Clean the URL (remove commands)
+      history.replaceState(null, '', `/${currentDbName}#${pageKey}`)
+    }
+
+    // Paint the final state into <app>
+    appElement.innerHTML = renderBuffer
+    // Re-hydrate scripts (innerHTML doesn't execute <script> tags automatically)
+    appElement.querySelectorAll('script').forEach(oldScript => {
+      let newScript = doc.createElement('script')
+      for (let attr of oldScript.attributes) newScript.setAttribute(attr.name, attr.value)
+      newScript[textContentProp] = oldScript[textContentProp]
+      oldScript.replaceWith(newScript)
+    })
+  }
+
+  // Attach the executor to URL changes and run on initial load
+  window.addEventListener('hashchange', executeRoute)
+  executeRoute()
+})()</script>
