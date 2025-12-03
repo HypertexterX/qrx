@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <style>:root{color-scheme:dark}</style>
 <app></app>
-<script>(() => {
-let $D = document,
-    $w = window,
-    $wl = $w.location
+<script>
+D = document
+W = window
+WL = W.location
+H = history
+O = 'os'
+F = 'files'
+L = localStorage
+ONS = 'onsuccess'
 
 class OS {
   constructor() {
     // Core configuration
-    this.name = 'os'
-    this.storeName = 'files'
-    this.root = $D.querySelector('app')
+    this.root = D.querySelector('app')
     this.plugins = {}
     
     // Listeners
-    $w.addEventListener('hashchange', () => this.route())
+    W.addEventListener('hashchange', () => this.route())
     
     // Start the system
     this.boot()
@@ -38,154 +41,148 @@ class OS {
   * Generic IndexedDB boilerplate
   */
   connectDB() {
-    return new Promise((resolve, reject) => {
-      let r = indexedDB.open(this.name, 1)
-      r.onupgradeneeded = (e) => {
+    return new Promise((r, re) => {
+      let q = indexedDB.open(O, 1)
+      q.onupgradeneeded = (e) => {
         let db = e.target.result
-        if (!db.objectStoreNames.contains(this.storeName)) {
-          db.createObjectStore(this.storeName)
+        if (!db.objectStoreNames.contains(F)) {
+          db.createObjectStore(F)
         }
       }
-      r.onsuccess = (e) => {
+      q[ONS] = (e) => {
         this.db = e.target.result
-        resolve()
+        r()
       }
-      r.onerror = reject
+      q.onerror = re
     })
   }
 
   // gets database transations
   // m = mode
-  dbTx(m, rw='readonly') {
-    return this.db.transaction(this.storeName, m).objectStore(this.storeName)
+  dbTx(m='readonly') {
+    return this.db.transaction(F, m).objectStore(F)
   }
   
-  async write(key, value) {
+  async write(k, v) {
     return new Promise((resolve) => {
-      this.dbTx('readwrite').put(value, key).onsuccess = resolve
+      this.dbTx('readwrite').put(v, k)[ONS] = resolve
     })
   }
   
-  async read(key) {
+  async read(k) {
     return new Promise((resolve) => {
-      this.dbTx().get(key).onsuccess = (e) => resolve(e.target.result)
+      this.dbTx().get(k)[ONS] = (e) => resolve(e.target.result)
     })
   }
   
   async getKeys() {
     return new Promise((resolve) => {
-      this.dbTx().getAllKeys().onsuccess = (e) => resolve(e.target.result)
+      this.dbTx().getAllKeys()[ONS] = (e) => resolve(e.target.result)
     })
   }
   
   // --- Plugin Architecture ---
-  
-  use(name, pluginFactory) {
-    this.plugins[name] = pluginFactory
+  // n = name
+  // p = plugin factory
+  use(n, p) {
+    this.plugins[n] = p
     // If plugin is a function, run it immediately passing the OS instance
-    if (typeof pluginFactory === 'function') pluginFactory(this)
+    if (typeof p === 'function') p(this)
   }
   
   // --- Kernel Logic ---
   
   async runBootloader() {
-    let keys = await this.getKeys(),
+    let k = await this.getKeys(),
       // Filter for any file starting with "boot" (e.g., boot/drivers, boot/theme)
-      bootFiles = keys.filter(k => k.startsWith('boot')).sort()
+      b = k.filter(k => k.startsWith('boot')).sort()
     
-    for (let file of bootFiles) {
-      let scriptContent = await this.read(file)
+    for (let f of b) {
+      let s = await this.read(f)
       try {
         // Execute boot scripts within the context of 'os'
-        (new Function('os', scriptContent))(this)
+        (new Function(O, s))(this)
       } catch (e) {
-        console.error(`[Boot Error] ${file}:`, e)
+        console.error(`[Boot Error] ${f}:`, e)
       }
     }
   }
   
   async route() {
     // Parse URL: #filename?cmd=val
-    let hash = $wl.hash.slice(1) || 'home',
-      [filePath, queryStr] = hash.split('?'),
-      params = new URLSearchParams(queryStr)
+    let h = WL.hash.slice(1) || 'home',
+      [fp, q] = h.split('?'),
+      p = new URLSearchParams(q)
     
     // 1. Handle Direct Write (?w=content)
-    if (params.has('w')) {
-      await this.write(filePath, params.get('w'))
+    if (p.has('w')) {
+      await this.write(fp, p.get('w'))
       // Clean URL after write so reloading doesn't re-write
-      history.replaceState(null, '', `#${filePath}`)
+      H.replaceState(null, '', `#${fp}`)
     }
     
     // Setup API Config
     // Check URL for keys, save to LocalStorage, then Clean URL
-    if (params.has('apiKey')) {
-      localStorage.setItem('apiKey', params.get('apiKey'))
-      params.delete('apiKey')
+    if (p.has('k')) {
+      L.setItem('k', p.get('k'))
+      p.delete('k')
       // Update URL without triggering reload, keeping other params like ?p=
-      let newHash = params.toString() ? `${filePath}?${params.toString()}` : filePath
-      history.replaceState(null, '', `#${newHash}`)
+      let newHash = p.toString() ? `${fp}?${p.toString()}` : fp
+      H.replaceState(null, '', `#${newHash}`)
     }
     
-    if (params.has('apiModel')) {
-      localStorage.setItem('apiModel', params.get('apiModel'))
-      params.delete('apiModel')
-      let newHash = params.toString() ? `${filePath}?${params.toString()}` : filePath
-      history.replaceState(null, '', `#${newHash}`)
+    if (p.has('m')) {
+      L.setItem('m', p.get('m'))
+      p.delete('m')
+      let newHash = p.toString() ? `${fp}?${p.toString()}` : fp
+      H.replaceState(null, '', `#${newHash}`)
     }
     
-    let apiKey = localStorage.getItem('apiKey'),
-      apiModel = localStorage.getItem('apiModel') || 'gemini-3-pro-preview'
+    let k = L.getItem('k'),
+      m = L.getItem('m') || 'gemini-3-pro-preview'
     
     // 2. Handle AI Generation (?p=...)
-    if (params.has('p')) {
-      if (!apiKey) {
-        this.render(`
-                  <h3>Configuration Required</h3>
-                  <p>No API Key found. Please add <code>?apiKey=YOUR_KEY</code> to the URL.</p>
-              `)
+    if (p.has('p')) {
+      if (!k) {
+        this.render(`<h3>Configuration Required</h3><p>No API Key found. Please add <code>?k=YOUR_KEY</code> to the URL.</p>`)
         return
       }
       // We pass the full current URL as the request, as it contains the prompt in ?p=
       await this.generateAndRender(
-      filePath, 
-      apiKey, 
-      apiModel, 
-      $wl.href 
+        fp, 
+        k, 
+        m, 
+        WL.href 
       )
       return
     }
     
     // 3. Standard Load
     // Load content from DB and render into <app>
-    let content = await this.read(filePath)
+    let c = await this.read(fp)
     
     // If no content, show minimal error allowing for creation
-    this.render(content || `
-        <h3>Error #0x404</h3>
-        <p>File #${filePath} does not exist yet.</p>
-        <p>Use <code>?w=content</code> to create it manually, or <code>?p=prompt</code> to generate it.</p>
-    `)
+    this.render(c || `<h3>Error #0x404</h3><p>File #${fp} does not exist yet.</p><p>Use <code>?w=content</code> to create it manually, or <code>?p=prompt</code> to generate it.</p>`)
   }
     
   /**
   * Renders HTML content and re-activates <script> tags
   * Browsers do not execute scripts inserted via innerHTML automatically
   */
-  render(html) {
-    this.root.innerHTML = html
+  render(h) {
+    this.root.innerHTML = h
     this.rehydrateScripts(this.root)
   }
   
-  rehydrateScripts(container) {
-    container.querySelectorAll('script').forEach(oldScript => {
-      let newScript = $D.createElement('script')
+  rehydrateScripts(c) {
+    c.querySelectorAll('script').forEach(o => {
+      let s = D.createElement('script')
       // Copy attributes (src, type, etc)
-      Array.from(oldScript.attributes).forEach(attr => {
-        newScript.setAttribute(attr.name, attr.value)
+      Array.from(o.attributes).forEach(attr => {
+        s.setAttribute(attr.name, attr.value)
       })
-      newScript.textContent = oldScript.textContent
-      oldScript.parentNode.replaceChild(newScript, oldScript)
+      s.textContent = o.textContent
+      o.parentNode.replaceChild(s, o)
     })
   }
   
@@ -193,62 +190,56 @@ class OS {
   * Streams from Gemini API directly into the DOM
   * Saves the final result to DB when finished
   */
-  async generateAndRender(filePath, key, model, promptUrl) {
+  async generateAndRender(f, k, m, u) {
     this.root.innerHTML = '<i>Thinking...</i>'
     
     // Context: We give the LLM the current file content (if any) as context
-    let currentContext = await this.read(filePath) || '',
-      payload = {
+    let c = await this.read(f) || '',
+      p = {
         contents: [{
           parts: [{ 
-            text: `<SYSTEM>You are an OS. Generate a valid HTML/JS Single Page App.</SYSTEM><CONTEXT>${currentContext}</CONTEXT><USER_REQUEST>${promptUrl}</USER_REQUEST>` 
+            text: `<SYSTEM>You are an OS. Generate a valid HTML/JS Single Page App.</SYSTEM><CONTEXT>${c}</CONTEXT><USER_REQUEST>${u}</USER_REQUEST>` 
           }]
         }]
       }
     
     try {
       // Added &alt=sse to force Server-Sent Events format so 'data: ' parsing works
-      let response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${key}&alt=sse`, 
-      {
+      let r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?key=${k}&alt=sse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }
-      )
+        body: JSON.stringify(p)
+      })
       
-      if (!response.ok) {
-        let errText = await response.text()
-        throw new Error(`API Error ${response.status}: ${errText}`)
+      if (!r.ok) {
+        let e = await r.text()
+        throw new Error(`API Error ${r.status}: ${e}`)
       }
       
-      let reader = response.body.getReader(),
-        decoder = new TextDecoder()
-      let buffer = '',
-        fullText = ''
+      let re = r.body.getReader(), de = new TextDecoder(), b = '', fT = ''
       
       // Stream Loop
       while (true) {
-        let { done, value } = await reader.read()
+        let { done, value } = await re.read()
         if (done) break
         
-        buffer += decoder.decode(value, { stream: true })
+        b += de.decode(value, { stream: true })
         
         // Parse Gemini's JSON stream format (SSE)
         // Data comes in chunks: "data: { ... }\n\n"
-        let lines = buffer.split('\n')
-        buffer = lines.pop() // Keep incomplete line in buffer
+        let ls = b.split('\n')
+        b = ls.pop() // Keep incomplete line in buffer
         
-        for (let line of lines) {
-          if (line.startsWith('data: ')) {
+        for (let l of ls) {
+          if (l.startsWith('data: ')) {
             try {
-              let json = JSON.parse(line.slice(6)),
-                text = json.candidates?.[0]?.content?.parts?.[0]?.text
-              if (text) {
-                fullText += text
+              let j = JSON.parse(l.slice(6)),
+                t = j.candidates?.[0]?.content?.parts?.[0]?.text
+              if (t) {
+                fT += t
                 // Live update URL (optional visual feedback) or partial DOM
                 // For simplicity/stability, we update the whole root here
-                this.root.innerHTML = fullText
+                this.root.innerHTML = fT
               }
             } catch (e) { /* Ignore parsing errors on partial chunks */ }
           }
@@ -256,13 +247,13 @@ class OS {
       }
       
       // Final Save
-      await this.write(filePath, fullText)
+      await this.write(f, fT)
       
       // Final Execution (Scripts won't run until this call)
       this.rehydrateScripts(this.root)
       
       // Clean URL
-      history.replaceState(null, '', `#${filePath}`)
+      H.replaceState(null, '', `#${f}`)
       
     } catch (err) {
       this.root.innerHTML = `<pre>${err.message}</pre>`
@@ -272,4 +263,4 @@ class OS {
 
 // Instantiate the global Operating System
 os = new OS()
-})()</script>
+</script>
