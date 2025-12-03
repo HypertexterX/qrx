@@ -6,7 +6,7 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
-    "build": "vite build && node dev/qrcode.js --file && wc -c dist/index.html",
+    "build": "vite build && node dev/qrcode.js --file",
     "preview": "vite preview",
     "qrcode": "node dev/qrcode.js"
   },
