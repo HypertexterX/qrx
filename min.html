@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<style>:root{color-scheme:dark}</style>
 <app></app>
 <script>
 D = document
@@ -10,15 +9,17 @@ O = 'os'
 F = 'files'
 L = localStorage
 ONS = 'onsuccess'
+SI = 'setItem'
+RS = 'replaceState'
 
 class OS {
   constructor() {
     // Core configuration
     this.root = D.querySelector('app')
-    this.plugins = {}
+    this.$ = {}
     
     // Listeners
-    W.addEventListener('hashchange', () => this.route())
+    W.addEventListener('hashchange', () => this.R())
     
     // Start the system
     this.boot()
@@ -31,16 +32,16 @@ class OS {
   * 3. Routes to the current URL hash
   */
   async boot() {
-    await this.connectDB()
-    await this.runBootloader()
-    await this.route()
+    await this.cdb()
+    await this.b()
+    await this.R()
   }
   
   /**
   * Database Connection
   * Generic IndexedDB boilerplate
   */
-  connectDB() {
+  cdb() {
     return new Promise((r, re) => {
       let q = indexedDB.open(O, 1)
       q.onupgradeneeded = (e) => {
@@ -59,25 +60,25 @@ class OS {
 
   // gets database transations
   // m = mode
-  dbTx(m='readonly') {
+  tx(m='readonly') {
     return this.db.transaction(F, m).objectStore(F)
   }
   
   async write(k, v) {
-    return new Promise((resolve) => {
-      this.dbTx('readwrite').put(v, k)[ONS] = resolve
+    return new Promise((r) => {
+      this.tx('readwrite').put(v, k)[ONS] = r
     })
   }
   
   async read(k) {
-    return new Promise((resolve) => {
-      this.dbTx().get(k)[ONS] = (e) => resolve(e.target.result)
+    return new Promise((r) => {
+      this.tx().get(k)[ONS] = (e) => r(e.target.result)
     })
   }
   
   async getKeys() {
-    return new Promise((resolve) => {
-      this.dbTx().getAllKeys()[ONS] = (e) => resolve(e.target.result)
+    return new Promise((r) => {
+      this.tx().getAllKeys()[ONS] = (e) => r(e.target.result)
     })
   }
   
@@ -85,14 +86,14 @@ class OS {
   // n = name
   // p = plugin factory
   use(n, p) {
-    this.plugins[n] = p
+    this.$[n] = p
     // If plugin is a function, run it immediately passing the OS instance
     if (typeof p === 'function') p(this)
   }
   
   // --- Kernel Logic ---
   
-  async runBootloader() {
+  async b() {
     let k = await this.getKeys(),
       // Filter for any file starting with "boot" (e.g., boot/drivers, boot/theme)
       b = k.filter(k => k.startsWith('boot')).sort()
@@ -108,7 +109,7 @@ class OS {
     }
   }
   
-  async route() {
+  async R() {
     // Parse URL: #filename?cmd=val
     let h = WL.hash.slice(1) || 'home',
       [fp, q] = h.split('?'),
@@ -118,24 +119,24 @@ class OS {
     if (p.has('w')) {
       await this.write(fp, p.get('w'))
       // Clean URL after write so reloading doesn't re-write
-      H.replaceState(null, '', `#${fp}`)
+      H[RS](null, '', `#${fp}`)
     }
     
     // Setup API Config
     // Check URL for keys, save to LocalStorage, then Clean URL
     if (p.has('k')) {
-      L.setItem('k', p.get('k'))
+      L[SI]('k', p.get('k'))
       p.delete('k')
       // Update URL without triggering reload, keeping other params like ?p=
       let newHash = p.toString() ? `${fp}?${p.toString()}` : fp
-      H.replaceState(null, '', `#${newHash}`)
+      H[RS](null, '', `#${newHash}`)
     }
     
     if (p.has('m')) {
-      L.setItem('m', p.get('m'))
+      L[SI]('m', p.get('m'))
       p.delete('m')
       let newHash = p.toString() ? `${fp}?${p.toString()}` : fp
-      H.replaceState(null, '', `#${newHash}`)
+      H[RS](null, '', `#${newHash}`)
     }
     
     let k = L.getItem('k'),
@@ -144,11 +145,11 @@ class OS {
     // 2. Handle AI Generation (?p=...)
     if (p.has('p')) {
       if (!k) {
-        this.render(`<h3>Configuration Required</h3><p>No API Key found. Please add <code>?k=YOUR_KEY</code> to the URL.</p>`)
+        this.r(`<h3>Configuration Required</h3><p>No API Key found. Please add <code>?k=YOUR_KEY</code> to the URL.</p>`)
         return
       }
       // We pass the full current URL as the request, as it contains the prompt in ?p=
-      await this.generateAndRender(
+      await this.g(
         fp, 
         k, 
         m, 
@@ -162,19 +163,20 @@ class OS {
     let c = await this.read(fp)
     
     // If no content, show minimal error allowing for creation
-    this.render(c || `<h3>Error #0x404</h3><p>File #${fp} does not exist yet.</p><p>Use <code>?w=content</code> to create it manually, or <code>?p=prompt</code> to generate it.</p>`)
+    this.r(c || '')
   }
     
   /**
   * Renders HTML content and re-activates <script> tags
   * Browsers do not execute scripts inserted via innerHTML automatically
   */
-  render(h) {
+  r(h) {
     this.root.innerHTML = h
-    this.rehydrateScripts(this.root)
+    this.RS(this.root)
   }
   
-  rehydrateScripts(c) {
+  // Rehydrate scripts
+  RS(c) {
     c.querySelectorAll('script').forEach(o => {
       let s = D.createElement('script')
       // Copy attributes (src, type, etc)
@@ -190,7 +192,7 @@ class OS {
   * Streams from Gemini API directly into the DOM
   * Saves the final result to DB when finished
   */
-  async generateAndRender(f, k, m, u) {
+  async g(f, k, m, u) {
     this.root.innerHTML = '<i>Thinking...</i>'
     
     // Context: We give the LLM the current file content (if any) as context
@@ -250,10 +252,10 @@ class OS {
       await this.write(f, fT)
       
       // Final Execution (Scripts won't run until this call)
-      this.rehydrateScripts(this.root)
+      this.RS(this.root)
       
       // Clean URL
-      H.replaceState(null, '', `#${f}`)
+      H[RS](null, '', `#${f}`)
       
     } catch (err) {
       this.root.innerHTML = `<pre>${err.message}</pre>`
