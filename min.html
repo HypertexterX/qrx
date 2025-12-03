@@ -65,21 +65,15 @@ class OS {
   }
   
   async write(k, v) {
-    return new Promise((r) => {
-      this.tx('readwrite').put(v, k)[ONS] = r
-    })
+    return new Promise((r) => this.tx('readwrite').put(v, k)[ONS] = r)
   }
   
   async read(k) {
-    return new Promise((r) => {
-      this.tx().get(k)[ONS] = (e) => r(e.target.result)
-    })
+    return new Promise((r) => this.tx().get(k)[ONS] = (e) => r(e.target.result))
   }
   
   async getKeys() {
-    return new Promise((r) => {
-      this.tx().getAllKeys()[ONS] = (e) => r(e.target.result)
-    })
+    return new Promise((r) => this.tx().getAllKeys()[ONS] = (e) => r(e.target.result))
   }
   
   // --- Plugin Architecture ---
@@ -132,21 +126,20 @@ class OS {
       if (p.has(a)) {
         L[SI](a, p.get(a))
         p.delete(a)
-        nh = p.toString() ? `${fp}?${p.toString()}` : fp
-        H[RS](null, '', `#${nh}`)
+        H[RS](null, '', `#${p.toString() ? `${fp}?${p.toString()}` : fp}`)
       }
     }
     
-    let k = L.getItem('k'), m = L.getItem('m')
+    let k = L.getItem('k')
     
     // 2. Handle AI Generation (?p=...)
     if (p.has('p')) {
       if (!k) {
-        this.r(`<h3>Configuration Required</h3>`)
+        this.r(`missing api key`)
         return
       }
       // We pass the full current URL as the request, as it contains the prompt in ?p=
-      await this.g(fp, s, k, m, WL.href)
+      await this.g(fp, L.getItem('s'), k, L.getItem('m'), WL.href)
       return
     }
     
@@ -192,7 +185,7 @@ class OS {
       p = {
         contents: [{
           parts: [{ 
-            text: `<SYSTEM>${s||'You are an OS. Generate a valid HTML/JS Single Page App'}</SYSTEM><CONTEXT>${c}</CONTEXT><USER_REQUEST>${u}</USER_REQUEST>` 
+            text: `<SYSTEM>${s}</SYSTEM><CONTEXT>${c}</CONTEXT><USER_REQUEST>${u}</USER_REQUEST>` 
           }]
         }]
       }
