@@ -106,20 +106,47 @@ class OS {
         const params = new URLSearchParams(queryStr)
 
         // 1. Handle Direct Write (?w=content)
-        // Useful for installing apps via link: #app?w=<script >...</ script>
         if (params.has('w')) {
             await this.write(filePath, params.get('w'))
             // Clean URL after write so reloading doesn't re-write
             history.replaceState(null, '', `#${filePath}`)
         }
 
-        // 2. Handle AI Generation (?apiKey=...&p=...)
-        if (params.has('apiKey') && params.has('p')) {
+        // Setup API Config
+        // Check URL for keys, save to LocalStorage, then Clean URL
+        if (params.has('apiKey')) {
+            localStorage.setItem('apiKey', params.get('apiKey'))
+            params.delete('apiKey')
+            // Update URL without triggering reload, keeping other params like ?p=
+            const newHash = params.toString() ? `${filePath}?${params.toString()}` : filePath
+            history.replaceState(null, '', `#${newHash}`)
+        }
+        
+        if (params.has('apiModel')) {
+            localStorage.setItem('apiModel', params.get('apiModel'))
+            params.delete('apiModel')
+            const newHash = params.toString() ? `${filePath}?${params.toString()}` : filePath
+            history.replaceState(null, '', `#${newHash}`)
+        }
+
+        const apiKey = localStorage.getItem('apiKey')
+        const apiModel = localStorage.getItem('apiModel') || 'gemini-3-pro-preview'
+
+        // 2. Handle AI Generation (?p=...)
+        if (params.has('p')) {
+            if (!apiKey) {
+                this.render(`
+                    <h3>Configuration Required</h3>
+                    <p>No API Key found. Please add <code>?apiKey=YOUR_KEY</code> to the URL.</p>
+                `)
+                return
+            }
+            // We pass the full current URL as the request, as it contains the prompt in ?p=
             await this.generateAndRender(
                 filePath, 
-                params.get('apiKey'), 
-                params.get('apiModel') || 'gemini-3-pro-preview', 
-                params.get('p')
+                apiKey, 
+                apiModel, 
+                window.location.href 
             )
             return
         }
@@ -132,7 +159,7 @@ class OS {
         this.render(content || `
             <h3>Error #0x404</h3>
             <p>File #${filePath} does not exist yet.</p>
-            <p>Use <code>?w=content</code> to create it manually, or <code>?apiKey=...&p=prompt</code> to generate it.</p>
+            <p>Use <code>?w=content</code> to create it manually, or <code>?p=prompt</code> to generate it.</p>
         `)
     }
 
@@ -161,7 +188,7 @@ class OS {
      * Streams from Gemini API directly into the DOM
      * Saves the final result to DB when finished
      */
-    async generateAndRender(filePath, key, model, prompt) {
+    async generateAndRender(filePath, key, model, promptUrl) {
         this.root.innerHTML = '<i>Thinking...</i>'
         
         // Context: We give the LLM the current file content (if any) as context
@@ -170,20 +197,26 @@ class OS {
         const payload = {
             contents: [{
                 parts: [{ 
-                    text: `<SYSTEM>You are an OS. Generate a valid HTML/JS Single Page App.</SYSTEM><CONTEXT>${currentContext}</CONTEXT><USER_REQUEST>${prompt}</USER_REQUEST>` 
+                    text: `<SYSTEM>You are an OS. Generate a valid HTML/JS Single Page App.</SYSTEM><CONTEXT>${currentContext}</CONTEXT><USER_REQUEST>${promptUrl}</USER_REQUEST>` 
                 }]
             }]
         }
 
         try {
+            // Added &alt=sse to force Server-Sent Events format so 'data: ' parsing works
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${key}`, 
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${key}&alt=sse`, 
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 }
             )
+
+            if (!response.ok) {
+                const errText = await response.text()
+                throw new Error(`API Error ${response.status}: ${errText}`)
+            }
 
             const reader = response.body.getReader()
             const decoder = new TextDecoder()
@@ -197,7 +230,7 @@ class OS {
                 
                 buffer += decoder.decode(value, { stream: true })
                 
-                // Parse Gemini's JSON stream format
+                // Parse Gemini's JSON stream format (SSE)
                 // Data comes in chunks: "data: { ... }\n\n"
                 const lines = buffer.split('\n')
                 buffer = lines.pop() // Keep incomplete line in buffer
