@@ -113,7 +113,8 @@ class OS {
     // Parse URL: #filename?cmd=val
     let h = WL.hash.slice(1) || 'home',
       [fp, q] = h.split('?'),
-      p = new URLSearchParams(q)
+      p = new URLSearchParams(q),
+      hn
     
     // 1. Handle Direct Write (?w=content)
     if (p.has('w')) {
@@ -123,38 +124,29 @@ class OS {
     }
     
     // Setup API Config
-    // Check URL for keys, save to LocalStorage, then Clean URL
-    if (p.has('k')) {
-      L[SI]('k', p.get('k'))
-      p.delete('k')
-      // Update URL without triggering reload, keeping other params like ?p=
-      let newHash = p.toString() ? `${fp}?${p.toString()}` : fp
-      H[RS](null, '', `#${newHash}`)
+    // k = api key
+    // m = api model
+    // s = system prompt
+    let api = ['k', 'm', 's']
+    for (let a of api) {
+      if (p.has(a)) {
+        L[SI](a, p.get(a))
+        p.delete(a)
+        nh = p.toString() ? `${fp}?${p.toString()}` : fp
+        H[RS](null, '', `#${nh}`)
+      }
     }
     
-    if (p.has('m')) {
-      L[SI]('m', p.get('m'))
-      p.delete('m')
-      let newHash = p.toString() ? `${fp}?${p.toString()}` : fp
-      H[RS](null, '', `#${newHash}`)
-    }
-    
-    let k = L.getItem('k'),
-      m = L.getItem('m') || 'gemini-3-pro-preview'
+    let k = L.getItem('k'), m = L.getItem('m')
     
     // 2. Handle AI Generation (?p=...)
     if (p.has('p')) {
       if (!k) {
-        this.r(`<h3>Configuration Required</h3><p>No API Key found. Please add <code>?k=YOUR_KEY</code> to the URL.</p>`)
+        this.r(`<h3>Configuration Required</h3>`)
         return
       }
       // We pass the full current URL as the request, as it contains the prompt in ?p=
-      await this.g(
-        fp, 
-        k, 
-        m, 
-        WL.href 
-      )
+      await this.g(fp, s, k, m, WL.href)
       return
     }
     
@@ -192,7 +184,7 @@ class OS {
   * Streams from Gemini API directly into the DOM
   * Saves the final result to DB when finished
   */
-  async g(f, k, m, u) {
+  async g(f, s, k, m, u) {
     this.root.innerHTML = '<i>Thinking...</i>'
     
     // Context: We give the LLM the current file content (if any) as context
@@ -200,7 +192,7 @@ class OS {
       p = {
         contents: [{
           parts: [{ 
-            text: `<SYSTEM>You are an OS. Generate a valid HTML/JS Single Page App.</SYSTEM><CONTEXT>${c}</CONTEXT><USER_REQUEST>${u}</USER_REQUEST>` 
+            text: `<SYSTEM>${s||'You are an OS. Generate a valid HTML/JS Single Page App'}</SYSTEM><CONTEXT>${c}</CONTEXT><USER_REQUEST>${u}</USER_REQUEST>` 
           }]
         }]
       }
