@@ -1,0 +1,29 @@
+{
+  "name": "qrx",
+  "version": "1.0.0",
+  "description": "a portable loom protocol small enough to fit in a qr code",
+  "main": "index.js",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build && node dev/qrcode.js --file && wc -c dist/index.html",
+    "preview": "vite preview",
+    "qrcode": "node dev/qrcode.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tulpamatter/qrx.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tulpamatter/qrx/issues"
+  },
+  "homepage": "https://github.com/tulpamatter/qrx#readme",
+  "devDependencies": {
+    "html-minifier-terser": "^7.2.0",
+    "qrcode": "^1.5.4",
+    "vite": "^7.1.12"
+  }
+}
