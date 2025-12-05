@@ -73,7 +73,7 @@ class OS {
     // --- THE MACHINE TAPE ---
     for(let [k,v] of p) {
       
-      // State: Set Append Mode
+      // State: Set Append Mode (?a=0 to turn off)
       if(k=='a') app = v!='0'
       
       // Pointer: Switch Active File
@@ -82,14 +82,13 @@ class OS {
       // Config: Set Key, Model, System, Host
       if('kmsh'.includes(k)) L.setItem(k, v)
 
-      // Action: Write (?w) or Read/Transclude (?r)
-      if(k=='w' || k=='r') {
-        // If Read, fetch content from DB. If Write, v is already content.
+      // Action: Write(?w), Read(?r), Url(?u)
+      if('wru'.includes(k)) {
         if(k=='r') v = await this.read(v)||''
+        if(k=='u') v = await (await fetch(v)).text()
         
-        // Handle Append
+        // Append or Overwrite
         if(app) v = (await this.read(f)||'') + v
-        
         await this.write(f, v)
       }
 
@@ -105,7 +104,7 @@ class OS {
     // Cleanup URL
     if(q) H[RS](0,'','#'+f)
 
-    // Final Render (Renders the last active file 'f')
+    // Final Render
     let c = await this.read(f)
     
     // Auto-Index
