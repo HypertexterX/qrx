@@ -17,7 +17,7 @@ class OS {
   }
 
   async boot() {
-    await this.db()
+    await this.cdb()
     // Run boot files
     let k = await this.keys(),
         b = k.filter(x => x.startsWith('boot')).sort()
@@ -32,17 +32,17 @@ class OS {
   }
 
   // Database Connect
-  db() {
+  cdb() {
     return new Promise(r => {
       let q = indexedDB.open(O)
       q.onupgradeneeded = e => e.target.result.createObjectStore(F)
-      q[ONS] = e => { this.d = e.target.result; r() }
+      q[ONS] = e => { this.db = e.target.result; r() }
     })
   }
 
   // Transaction Helper
   tx(m='readonly') {
-    return this.d.transaction(F, m).objectStore(F)
+    return this.db.transaction(F, m).objectStore(F)
   }
 
   write(k, v) {
@@ -69,9 +69,8 @@ class OS {
       return H.replaceState(0,'','#'+f)
     }
 
-    // 2. Config Setting (API Key/Model/System)
-    // ?k=KEY&m=gemini-1.5-flash&s=You are a coder
-    for(let k of ['k','m','s']) {
+    // 2. Config Setting (API Key/Model/System/Host)
+    for(let k of ['k','m','s','h']) {
       if(p.has(k)) {
         L.setItem(k, p.get(k))
         p.delete(k)
@@ -102,28 +101,33 @@ class OS {
   }
 
   async gen(f, prompt) {
-    let k = L.getItem('k')
-    if(!k) return this.r('No API Key')
+    let [k,m,s,h] = ['k','m','s','h'].map(x=>L.getItem(x)),
+        c = await this.read(f),
+        g = h == 'google',
+        // Construct message
+        msg = `<SYS>${s}</SYS><FILE>${c}</FILE><REQ>${prompt}</REQ>`,
+        // URL & Body toggle
+        u = g ? `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}` : h,
+        b = g ? { contents: [{ parts: [{ text: msg }] }] }
+              : { model: m, messages: [{ role: 'user', content: msg }] },
+        // Headers
+        head = {'Content-Type': 'application/json'},
+        req, res, txt
+    
+    if(!g && k) head['Authorization'] = `Bearer ${k}`
     
     A.innerHTML = 'Thinking...'
     
-    let c = await this.read(f),
-        sys = L.getItem('s'),
-        m = L.getItem('m')
-    
     try {
-      let req = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}`, {
+      req = await fetch(u, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: J.stringify({
-          contents: [{
-            parts: [{ text: `<SYS>${sys}</SYS><FILE>${c}</FILE><REQ>${prompt}</REQ>` }]
-          }]
-        })
+        headers: head,
+        body: J.stringify(b)
       })
       
-      let res = await req.json()
-      let txt = res.candidates?.[0]?.content?.parts?.[0]?.text
+      res = await req.json()
+      txt = g ? res.candidates?.[0]?.content?.parts?.[0]?.text
+              : res.choices?.[0]?.message?.content
       
       if(txt) {
         await this.write(f, txt)
