@@ -5,7 +5,8 @@
 D=document
 J=JSON
 L=localStorage
-RS=history.replaceState
+H=history
+RS=H.replaceState
 W=window
 // Standard shortened DB vars
 O='os';F='files';ONS='onsuccess'
@@ -61,15 +62,18 @@ class OS {
   }
 
   async run() {
+    // Redirect empty hash to #home
+    if(!location.hash) { H[RS](0,'','#home'); return this.run() }
+
     // URL Parsing
-    let h = location.hash.slice(1) || 'home',
+    let h = location.hash.slice(1),
         [f, q] = h.split('?'),
         p = new URLSearchParams(q)
 
     // 1. Direct Write (?w=...)
     if (p.has('w')) {
       await this.write(f, p.get('w'))
-      return RS(0,'','#'+f)
+      return H[RS](0,'','#'+f)
     }
     
     // 2. Execute (?x=...)
@@ -77,7 +81,7 @@ class OS {
       try {
         await (new Function(O, p.get('x')))(this)
       } catch(e) { console.error(e) }
-      return RS(0,'','#'+f)
+      return H[RS](0,'','#'+f)
     }
 
     // 3. Config Setting (API Key/Model/System/Host)
@@ -86,7 +90,7 @@ class OS {
         L.setItem(k, p.get(k))
         p.delete(k)
         // Update URL cleanly
-        RS(0,'','#'+(p.toString()?`${f}?${p}`:f))
+        H[RS](0,'','#'+(p.toString()?`${f}?${p}`:f))
       }
     }
 
@@ -101,7 +105,7 @@ class OS {
     // Auto-Index if 404
     if(!c) c = (await this.keys()).map(k=>`<a href="#${k}">${k}</a>`).join('<br>')
     
-    // Safe mode renders raw HTML (no script rehydration)
+    // Safe mode renders raw HTML
     if(p.has('safe')) A.innerHTML = c
     else this.rehydrate(c)
   }
@@ -149,7 +153,7 @@ class OS {
       if(txt) {
         await this.write(f, txt)
         this.rehydrate(txt)
-        RS(0,'','#'+f)
+        H[RS](0,'','#'+f)
       }
     } catch(e) {
       A.innerHTML = e
