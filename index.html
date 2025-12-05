@@ -59,45 +59,45 @@ class OS {
   }
 
   async run() {
+    // Wait for DB
+    if(!this.db) await this.cdb()
+
     // Redirect empty hash
     if(!location.hash) { H[RS](0,'','#home'); return this.run() }
 
     let h = location.hash.slice(1),
         [f, q] = h.split('?'),
-        p = new URLSearchParams(q)
+        p = new URLSearchParams(q),
+        app = false // Append State Flag
 
-    // 1. Direct Write (?w=...&a)
-    if (p.has('w')) {
-      let v = p.get('w')
-      if(p.has('a')) {
-        let old = await this.read(f)
-        if(old) v = old + v
+    // --- THE MACHINE TAPE ---
+    for(let [k,v] of p) {
+      
+      // State: Set Append Mode (?a=0 to turn off)
+      if(k=='a') app = v!='0'
+
+      // Config: Set Key, Model, System, Host
+      if('kmsh'.includes(k)) L.setItem(k, v)
+
+      // Action: Write
+      if(k=='w') {
+        if(app) v = (await this.read(f)||'') + v
+        await this.write(f, v)
       }
-      await this.write(f, v)
-      H[RS](0,'','#'+f)
-    }
-    
-    // 2. Execute (?x=...)
-    if (p.has('x')) {
-      try {
-        await (new Function(O, p.get('x')))(this)
-      } catch(e) { console.error(e) }
-      H[RS](0,'','#'+f)
-    }
 
-    // 3. Config
-    for(let k of ['k','m','s','h']) {
-      if(p.has(k)) {
-        L.setItem(k, p.get(k))
-        p.delete(k)
-        H[RS](0,'','#'+(p.toString()?`${f}?${p}`:f))
+      // Action: Execute
+      if(k=='x') {
+        try { await (new Function(O, v))(this) } catch(e){ console.error(e) }
       }
+
+      // Action: Prompt (AI)
+      if(k=='p') await this.gen(f, v, app)
     }
 
-    // 4. AI Gen (?p=...&a)
-    if (p.has('p')) return this.gen(f, p.get('p'), p.has('a'))
+    // Cleanup URL
+    if(q) H[RS](0,'','#'+f)
 
-    // 5. Render
+    // Final Render
     let c = await this.read(f)
     
     // Auto-Index
@@ -141,8 +141,7 @@ class OS {
       if(txt) {
         if(app) txt = c + txt
         await this.write(f, txt)
-        this.rehydrate(txt)
-        H[RS](0,'','#'+f)
+        // No rehydrate here, tape loop continues
       }
     } catch(e) { A.innerHTML = e }
   }
