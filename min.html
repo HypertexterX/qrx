@@ -6,10 +6,11 @@ D=document
 J=JSON
 L=localStorage
 H=history
-RS=H.replaceState
+RS='replaceState'
 W=window
-// Standard shortened DB vars
-O='os';F='files';ONS='onsuccess'
+// DB Name determined by Path (Multiverse Support)
+O=location.pathname.slice(1)||'os'
+F='files';ONS='onsuccess'
 
 class OS {
   constructor() {
