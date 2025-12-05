@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <app id=A></app>
+<style>:root{color-scheme:dark}</style>
 <script>
 D=document
-W=window
-L=localStorage
-H=history
 J=JSON
+L=localStorage
+RS=history.replaceState
+W=window
 // Standard shortened DB vars
 O='os';F='files';ONS='onsuccess'
 
 class OS {
   constructor() {
     // Listen for hash changes
-    W.onhashchange = () => this.R()
+    W.onhashchange = () => this.run()
     this.boot()
   }
 
@@ -28,7 +29,7 @@ class OS {
         (new Function(O, s))(this)
       } catch(e) { console.error(f,e) }
     }
-    this.R()
+    this.run()
   }
 
   // Database Connect
@@ -57,7 +58,7 @@ class OS {
     return new Promise(r => this.tx().getAllKeys()[ONS] = e => r(e.target.result))
   }
 
-  async R() {
+  async run() {
     // URL Parsing
     let h = location.hash.slice(1) || 'home',
         [f, q] = h.split('?'),
@@ -66,31 +67,39 @@ class OS {
     // 1. Direct Write (?w=...)
     if (p.has('w')) {
       await this.write(f, p.get('w'))
-      return H.replaceState(0,'','#'+f)
+      return RS(0,'','#'+f)
+    }
+    
+    // 2. Execute (?x=...)
+    if (p.has('x')) {
+      try {
+        await (new Function(O, p.get('x')))(this)
+      } catch(e) { console.error(e) }
+      return RS(0,'','#'+f)
     }
 
-    // 2. Config Setting (API Key/Model/System/Host)
+    // 3. Config Setting (API Key/Model/System/Host)
     for(let k of ['k','m','s','h']) {
       if(p.has(k)) {
         L.setItem(k, p.get(k))
         p.delete(k)
         // Update URL cleanly
-        H.replaceState(0,'','#'+(p.toString()?`${f}?${p}`:f))
+        RS(0,'','#'+(p.toString()?`${f}?${p}`:f))
       }
     }
 
-    // 3. AI Gen (?p=...)
+    // 4. AI Gen (?p=...)
     if (p.has('p')) {
       return this.gen(f, p.get('p'))
     }
 
-    // 4. Render
+    // 5. Render
     let c = await this.read(f)
-    this.r(c || '404')
+    this.rehydrate(c || '404')
   }
 
   // Render & Rehydrate Scripts
-  r(h) {
+  rehydrate(h) {
     A.innerHTML = h
     A.querySelectorAll('script').forEach(o => {
       let s = D.createElement('script')
@@ -131,8 +140,8 @@ class OS {
       
       if(txt) {
         await this.write(f, txt)
-        this.r(txt)
-        H.replaceState(0,'','#'+f)
+        this.rehydrate(txt)
+        RS(0,'','#'+f)
       }
     } catch(e) {
       A.innerHTML = e
