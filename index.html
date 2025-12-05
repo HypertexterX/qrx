@@ -1,271 +1,152 @@
 <!DOCTYPE html>
+<app id=A></app>
 <style>:root{color-scheme:dark}</style>
-<app></app>
 <script>
+D=document
+J=JSON
+L=localStorage
+H=history
+RS='replaceState'
+W=window
+// DB Name determined by Path (Multiverse Support)
+O=location.pathname.slice(1)||'os'
+F='files';ONS='onsuccess'
+
 class OS {
   constructor() {
-    // Core configuration
-    this.dbName = 'os'
-    this.storeName = 'files'
-    this.root = document.querySelector('app')
-    this.plugins = {}
-    
-    // Listeners
-    window.addEventListener('hashchange', () => this.route())
-    
-    // Start the system
+    W.onhashchange = () => this.run()
     this.boot()
   }
-  
-  /**
-  * System Entry Point
-  * 1. Connects to IndexedDB
-  * 2. Runs any file starting with 'boot/'
-  * 3. Routes to the current URL hash
-  */
+
   async boot() {
-    await this.connectDB()
-    await this.runBootloader()
-    await this.route()
-  }
-  
-  /**
-  * Database Connection
-  * Generic IndexedDB boilerplate
-  */
-  connectDB() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 1)
-      request.onupgradeneeded = (e) => {
-        const db = e.target.result
-        if (!db.objectStoreNames.contains(this.storeName)) {
-          db.createObjectStore(this.storeName)
-        }
+    await this.cdb()
+    // Run boot files (Skip if ?safe)
+    if(!new URLSearchParams(location.hash.split('?')[1]).has('safe')) {
+      let k = await this.keys(),
+          b = k.filter(x => x.startsWith('boot')).sort()
+      for (let f of b) {
+        try {
+          let s = await this.read(f)
+          (new Function(O, s))(this)
+        } catch(e) { console.error(f,e) }
       }
-      request.onsuccess = (e) => {
-        this.db = e.target.result
-        resolve()
+    }
+    this.run()
+  }
+
+  cdb() {
+    return new Promise(r => {
+      let q = indexedDB.open(O)
+      q.onupgradeneeded = e => e.target.result.createObjectStore(F)
+      q[ONS] = e => { this.db = e.target.result; r() }
+    })
+  }
+
+  tx(m='readonly') {
+    return this.db.transaction(F, m).objectStore(F)
+  }
+
+  write(k, v) {
+    return new Promise(r => this.tx('readwrite').put(v, k)[ONS] = r)
+  }
+
+  read(k) {
+    return new Promise(r => this.tx().get(k)[ONS] = e => r(e.target.result))
+  }
+
+  keys() {
+    return new Promise(r => this.tx().getAllKeys()[ONS] = e => r(e.target.result))
+  }
+
+  async run() {
+    // Redirect empty hash
+    if(!location.hash) { H[RS](0,'','#home'); return this.run() }
+
+    let h = location.hash.slice(1),
+        [f, q] = h.split('?'),
+        p = new URLSearchParams(q)
+
+    // 1. Direct Write (?w=...&a)
+    if (p.has('w')) {
+      let v = p.get('w')
+      if(p.has('a')) {
+        let old = await this.read(f)
+        if(old) v = old + v
       }
-      request.onerror = reject
-    })
-  }
-  
-  // --- File System Abstractions ---
-  
-  async write(key, value) {
-    return new Promise((resolve) => {
-      const tx = this.db.transaction(this.storeName, 'readwrite')
-      tx.objectStore(this.storeName).put(value, key).onsuccess = resolve
-    })
-  }
-  
-  async read(key) {
-    return new Promise((resolve) => {
-      const tx = this.db.transaction(this.storeName, 'readonly')
-      tx.objectStore(this.storeName).get(key).onsuccess = (e) => resolve(e.target.result)
-    })
-  }
-  
-  async getKeys() {
-    return new Promise((resolve) => {
-      const tx = this.db.transaction(this.storeName, 'readonly')
-      tx.objectStore(this.storeName).getAllKeys().onsuccess = (e) => resolve(e.target.result)
-    })
-  }
-  
-  // --- Plugin Architecture ---
-  
-  use(name, pluginFactory) {
-    this.plugins[name] = pluginFactory
-    // If plugin is a function, run it immediately passing the OS instance
-    if (typeof pluginFactory === 'function') pluginFactory(this)
-  }
-  
-  // --- Kernel Logic ---
-  
-  async runBootloader() {
-    const keys = await this.getKeys()
-    // Filter for any file starting with "boot" (e.g., boot/drivers, boot/theme)
-    const bootFiles = keys.filter(k => k.startsWith('boot')).sort()
+      await this.write(f, v)
+      H[RS](0,'','#'+f)
+    }
     
-    for (const file of bootFiles) {
-      const scriptContent = await this.read(file)
+    // 2. Execute (?x=...)
+    if (p.has('x')) {
       try {
-        // Execute boot scripts within the context of 'os'
-        (new Function('os', scriptContent))(this)
-      } catch (e) {
-        console.error(`[Boot Error] ${file}:`, e)
+        await (new Function(O, p.get('x')))(this)
+      } catch(e) { console.error(e) }
+      H[RS](0,'','#'+f)
+    }
+
+    // 3. Config
+    for(let k of ['k','m','s','h']) {
+      if(p.has(k)) {
+        L.setItem(k, p.get(k))
+        p.delete(k)
+        H[RS](0,'','#'+(p.toString()?`${f}?${p}`:f))
       }
     }
+
+    // 4. AI Gen (?p=...&a)
+    if (p.has('p')) return this.gen(f, p.get('p'), p.has('a'))
+
+    // 5. Render
+    let c = await this.read(f)
+    
+    // Auto-Index
+    if(!c) c = (await this.keys()).map(k=>`<a href="#${k}">${k}</a>`).join('<br>')
+    
+    if(p.has('safe')) A.innerHTML = c
+    else this.rehydrate(c)
   }
-  
-  async route() {
-    // Parse URL: #filename?cmd=val
-    const hash = window.location.hash.slice(1) || 'home'
-    const [filePath, queryStr] = hash.split('?')
-    const params = new URLSearchParams(queryStr)
-    
-    // 1. Handle Direct Write (?w=content)
-    if (params.has('w')) {
-      await this.write(filePath, params.get('w'))
-      // Clean URL after write so reloading doesn't re-write
-      history.replaceState(null, '', `#${filePath}`)
-    }
-    
-    // Setup API Config
-    // Check URL for keys, save to LocalStorage, then Clean URL
-    if (params.has('apiKey')) {
-      localStorage.setItem('apiKey', params.get('apiKey'))
-      params.delete('apiKey')
-      // Update URL without triggering reload, keeping other params like ?p=
-      const newHash = params.toString() ? `${filePath}?${params.toString()}` : filePath
-      history.replaceState(null, '', `#${newHash}`)
-    }
-    
-    if (params.has('apiModel')) {
-      localStorage.setItem('apiModel', params.get('apiModel'))
-      params.delete('apiModel')
-      const newHash = params.toString() ? `${filePath}?${params.toString()}` : filePath
-      history.replaceState(null, '', `#${newHash}`)
-    }
-    
-    const apiKey = localStorage.getItem('apiKey')
-    const apiModel = localStorage.getItem('apiModel') || 'gemini-3-pro-preview'
-    
-    // 2. Handle AI Generation (?p=...)
-    if (params.has('p')) {
-      if (!apiKey) {
-        this.render(`
-                  <h3>Configuration Required</h3>
-                  <p>No API Key found. Please add <code>?apiKey=YOUR_KEY</code> to the URL.</p>
-              `)
-        return
-      }
-      // We pass the full current URL as the request, as it contains the prompt in ?p=
-      await this.generateAndRender(
-      filePath, 
-      apiKey, 
-      apiModel, 
-      window.location.href 
-      )
-      return
-    }
-    
-    // 3. Standard Load
-    // Load content from DB and render into <app>
-    const content = await this.read(filePath)
-    
-    // If no content, show minimal error allowing for creation
-    this.render(content || `
-        <h3>Error #0x404</h3>
-        <p>File #${filePath} does not exist yet.</p>
-        <p>Use <code>?w=content</code> to create it manually, or <code>?p=prompt</code> to generate it.</p>
-    `)
-  }
-    
-  /**
-  * Renders HTML content and re-activates <script> tags
-  * Browsers do not execute scripts inserted via innerHTML automatically
-  */
-  render(html) {
-    this.root.innerHTML = html
-    this.rehydrateScripts(this.root)
-  }
-  
-  rehydrateScripts(container) {
-    container.querySelectorAll('script').forEach(oldScript => {
-      const newScript = document.createElement('script')
-      // Copy attributes (src, type, etc)
-      Array.from(oldScript.attributes).forEach(attr => {
-        newScript.setAttribute(attr.name, attr.value)
-      })
-      newScript.textContent = oldScript.textContent
-      oldScript.parentNode.replaceChild(newScript, oldScript)
+
+  rehydrate(h) {
+    A.innerHTML = h
+    A.querySelectorAll('script').forEach(o => {
+      let s = D.createElement('script')
+      Array.from(o.attributes).forEach(a => s.setAttribute(a.name, a.value))
+      s.text = o.textContent
+      o.replaceWith(s)
     })
   }
-  
-  /**
-  * Streams from Gemini API directly into the DOM
-  * Saves the final result to DB when finished
-  */
-  async generateAndRender(filePath, key, model, promptUrl) {
-    this.root.innerHTML = '<i>Thinking...</i>'
+
+  async gen(f, prompt, app) {
+    let [k,m,s,h] = ['k','m','s','h'].map(x=>L.getItem(x)),
+        c = await this.read(f) || '',
+        g = h == 'google',
+        msg = `<SYS>${s}</SYS><FILE>${c}</FILE><REQ>${prompt}</REQ>`,
+        u = g ? `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}` : h,
+        b = g ? { contents: [{ parts: [{ text: msg }] }] }
+              : { model: m, messages: [{ role: 'user', content: msg }] },
+        head = {'Content-Type': 'application/json'},
+        req, res, txt
     
-    // Context: We give the LLM the current file content (if any) as context
-    const currentContext = await this.read(filePath) || ''
+    if(!g && k) head['Authorization'] = `Bearer ${k}`
     
-    const payload = {
-      contents: [{
-        parts: [{ 
-          text: `<SYSTEM>You are an OS. Generate a valid HTML/JS Single Page App.</SYSTEM><CONTEXT>${currentContext}</CONTEXT><USER_REQUEST>${promptUrl}</USER_REQUEST>` 
-        }]
-      }]
-    }
+    A.innerHTML = 'Thinking...'
     
     try {
-      // Added &alt=sse to force Server-Sent Events format so 'data: ' parsing works
-      const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${key}&alt=sse`, 
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      req = await fetch(u, { method: 'POST', headers: head, body: J.stringify(b) })
+      res = await req.json()
+      txt = g ? res.candidates?.[0]?.content?.parts?.[0]?.text
+              : res.choices?.[0]?.message?.content
+      
+      if(txt) {
+        if(app) txt = c + txt
+        await this.write(f, txt)
+        this.rehydrate(txt)
+        H[RS](0,'','#'+f)
       }
-      )
-      
-      if (!response.ok) {
-        const errText = await response.text()
-        throw new Error(`API Error ${response.status}: ${errText}`)
-      }
-      
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let fullText = ''
-      
-      // Stream Loop
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        buffer += decoder.decode(value, { stream: true })
-        
-        // Parse Gemini's JSON stream format (SSE)
-        // Data comes in chunks: "data: { ... }\n\n"
-        const lines = buffer.split('\n')
-        buffer = lines.pop() // Keep incomplete line in buffer
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const json = JSON.parse(line.slice(6))
-              const text = json.candidates?.[0]?.content?.parts?.[0]?.text
-              if (text) {
-                fullText += text
-                // Live update URL (optional visual feedback) or partial DOM
-                // For simplicity/stability, we update the whole root here
-                this.root.innerHTML = fullText
-              }
-            } catch (e) { /* Ignore parsing errors on partial chunks */ }
-          }
-        }
-      }
-      
-      // Final Save
-      await this.write(filePath, fullText)
-      
-      // Final Execution (Scripts won't run until this call)
-      this.rehydrateScripts(this.root)
-      
-      // Clean URL
-      history.replaceState(null, '', `#${filePath}`)
-      
-    } catch (err) {
-      this.root.innerHTML = `<pre>${err.message}</pre>`
-    }
+    } catch(e) { A.innerHTML = e }
   }
 }
 
-// Instantiate the global Operating System
-const os = new OS()
+os = new OS()
 </script>
