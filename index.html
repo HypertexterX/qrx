@@ -73,15 +73,23 @@ class OS {
     // --- THE MACHINE TAPE ---
     for(let [k,v] of p) {
       
-      // State: Set Append Mode (?a=0 to turn off)
+      // State: Set Append Mode
       if(k=='a') app = v!='0'
+      
+      // Pointer: Switch Active File
+      if(k=='f') f = v
 
       // Config: Set Key, Model, System, Host
       if('kmsh'.includes(k)) L.setItem(k, v)
 
-      // Action: Write
-      if(k=='w') {
+      // Action: Write (?w) or Read/Transclude (?r)
+      if(k=='w' || k=='r') {
+        // If Read, fetch content from DB. If Write, v is already content.
+        if(k=='r') v = await this.read(v)||''
+        
+        // Handle Append
         if(app) v = (await this.read(f)||'') + v
+        
         await this.write(f, v)
       }
 
@@ -97,7 +105,7 @@ class OS {
     // Cleanup URL
     if(q) H[RS](0,'','#'+f)
 
-    // Final Render
+    // Final Render (Renders the last active file 'f')
     let c = await this.read(f)
     
     // Auto-Index
@@ -141,7 +149,7 @@ class OS {
       if(txt) {
         if(app) txt = c + txt
         await this.write(f, txt)
-        // No rehydrate here, tape loop continues
+        // Tape continues...
       }
     } catch(e) { A.innerHTML = e }
   }
