@@ -73,48 +73,43 @@ class OS {
 
     // --- THE MACHINE TAPE ---
     for(let [k,val] of p) {
+      let c;
       
-      // State: Set Append Mode (?a=0 to turn off)
-      if(k=='a') app = val!='0'
+      // 1. Dynamic Commands (cmd/*) - Checks first to allow Overrides
+      if(c = await this.read('cmd/'+k)) {
+        try {
+          let r = await (new Function(O, 'v', 'arg', c))(this, v, val)
+          if(r!==void 0) v = r
+        } catch(e) { console.error(k,e) }
+      }
       
-      // Pointer: Switch Write Target (Preserves v)
+      // 2. State: Set Append Mode
+      else if(k=='a') app = val!='0'
+      
+      // 3. Pointer: Switch Write Target
       else if(k=='f') f = val
 
-      // Config: Set Key, Model, System, Host
+      // 4. Config: Set Key, Model, System, Host
       else if('kmsh'.includes(k)) L.setItem(k, val)
 
-      // Pipeline: Echo(?e), Read(?r), Url(?u), Prompt(?p) -> Update v
+      // 5. Pipeline: Echo, Read, Url, Prompt
       else if('erup'.includes(k)) {
         let s = val
         if(k=='r') s = await this.read(val)||''
         if(k=='u') s = await (await fetch(val)).text()
         if(k=='p') s = await this.gen(v, val)
-        
-        // Update Accumulator
         v = app ? v + s : s
       }
 
-      // Action: Write (Flush v to f)
+      // 6. Action: Write
       else if(k=='w') await this.write(f, v)
 
-      // Action: Execute (Transform v)
+      // 7. Action: Execute
       else if(k=='x') {
         try {
           let r = await (new Function(O, 'v', val))(this, v)
           if(r!==void 0) v = r
         } catch(e){ console.error(e) }
-      }
-
-      // Dynamic Commands (cmd/*)
-      else {
-        let c = await this.read('cmd/'+k)
-        if(c) {
-          try {
-            // Execute file as function(os, v, arg)
-            let r = await (new Function(O, 'v', 'arg', c))(this, v, val)
-            if(r!==void 0) v = r
-          } catch(e) { console.error(k,e) }
-        }
       }
     }
 
