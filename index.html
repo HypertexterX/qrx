@@ -110,10 +110,7 @@ class OS {
     if(q) H[RS](0,'','#'+n)
 
     // Final Render (From Disk)
-    let c = await this.read(n)
-    
-    // Auto-Index
-    if(!c) c = (await this.keys()).map(k=>`<a href="#${k}">${k}</a>`).join('<br>')
+    let c = await this.read(n) || ''
     
     if(p.has('safe')) A.innerHTML = c
     else this.rehydrate(c)
@@ -132,7 +129,6 @@ class OS {
   async gen(ctx, prompt) {
     let [k,m,s,h] = ['k','m','s','h'].map(x=>L.getItem(x)),
         g = h == 'google',
-        // CHANGED: Removed Tags. Raw concatenation of System + Context + Prompt
         msg = (s||'') + ctx + prompt,
         u = g ? `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}` : h,
         b = g ? { contents: [{ parts: [{ text: msg }] }] }
