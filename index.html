@@ -78,13 +78,13 @@ class OS {
       if(k=='a') app = val!='0'
       
       // Pointer: Switch Write Target (Preserves v)
-      if(k=='f') f = val
+      else if(k=='f') f = val
 
       // Config: Set Key, Model, System, Host
-      if('kmsh'.includes(k)) L.setItem(k, val)
+      else if('kmsh'.includes(k)) L.setItem(k, val)
 
       // Pipeline: Echo(?e), Read(?r), Url(?u), Prompt(?p) -> Update v
-      if('erup'.includes(k)) {
+      else if('erup'.includes(k)) {
         let s = val
         if(k=='r') s = await this.read(val)||''
         if(k=='u') s = await (await fetch(val)).text()
@@ -95,14 +95,26 @@ class OS {
       }
 
       // Action: Write (Flush v to f)
-      if(k=='w') await this.write(f, v)
+      else if(k=='w') await this.write(f, v)
 
       // Action: Execute (Transform v)
-      if(k=='x') {
+      else if(k=='x') {
         try {
           let r = await (new Function(O, 'v', val))(this, v)
           if(r!==void 0) v = r
         } catch(e){ console.error(e) }
+      }
+
+      // Dynamic Commands (cmd/*)
+      else {
+        let c = await this.read('cmd/'+k)
+        if(c) {
+          try {
+            // Execute file as function(os, v, arg)
+            let r = await (new Function(O, 'v', 'arg', c))(this, v, val)
+            if(r!==void 0) v = r
+          } catch(e) { console.error(k,e) }
+        }
       }
     }
 
