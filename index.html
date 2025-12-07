@@ -132,8 +132,8 @@ class OS {
   async gen(ctx, prompt) {
     let [k,m,s,h] = ['k','m','s','h'].map(x=>L.getItem(x)),
         g = h == 'google',
-        // Context is now the Accumulator (ctx)
-        msg = `<SYS>${s}</SYS><FILE>${ctx}</FILE><REQ>${prompt}</REQ>`,
+        // CHANGED: Removed Tags. Raw concatenation of System + Context + Prompt
+        msg = (s||'') + ctx + prompt,
         u = g ? `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}` : h,
         b = g ? { contents: [{ parts: [{ text: msg }] }] }
               : { model: m, messages: [{ role: 'user', content: msg }] },
