@@ -65,52 +65,51 @@ class OS {
     if(!location.hash) { H[RS](0,'','#home'); return this.run() }
 
     let h = location.hash.slice(1),
-        [n, q] = h.split('?'),
-        f = n,
+        [n, q] = h.split('?'), // n=View Name
+        f = n,                 // f=Write Pointer
         p = new URLSearchParams(q),
-        app = false // Append State Flag
+        v = await this.read(n)||'', // v=Accumulator (Starts with View)
+        app = false
 
     // --- THE MACHINE TAPE ---
-    for(let [k,v] of p) {
+    for(let [k,val] of p) {
       
       // State: Set Append Mode (?a=0 to turn off)
-      if(k=='a') app = v!='0'
+      if(k=='a') app = val!='0'
       
-      // Pointer: Switch Active File
-      if(k=='f') f = v
+      // Pointer: Switch Write Target (Preserves v)
+      if(k=='f') f = val
 
       // Config: Set Key, Model, System, Host
-      if('kmsh'.includes(k)) L.setItem(k, v)
+      if('kmsh'.includes(k)) L.setItem(k, val)
 
-      // Action: Write(?w), Read(?r), Url(?u)
-      if('wru'.includes(k)) {
-        if(k=='r') v = await this.read(v)||''
-        if(k=='u') v = await (await fetch(v)).text()
+      // Pipeline: Echo(?e), Read(?r), Url(?u), Prompt(?p) -> Update v
+      if('erup'.includes(k)) {
+        let s = val
+        if(k=='r') s = await this.read(val)||''
+        if(k=='u') s = await (await fetch(val)).text()
+        if(k=='p') s = await this.gen(v, val)
         
-        // Append or Overwrite
-        if(app) v = (await this.read(f)||'') + v
-        await this.write(f, v)
+        // Update Accumulator
+        v = app ? v + s : s
       }
 
-      // Action: Execute
+      // Action: Write (Flush v to f)
+      if(k=='w') await this.write(f, v)
+
+      // Action: Execute (Transform v)
       if(k=='x') {
         try {
-          // CHANGED: Pass current file content (c) as 'v' to the function
-          // If function returns a value, write it back to f
-          let c = await this.read(f),
-              r = await (new Function(O, 'v', v))(this, c)
-          if(r!==void 0) await this.write(f, r)
+          let r = await (new Function(O, 'v', val))(this, v)
+          if(r!==void 0) v = r
         } catch(e){ console.error(e) }
       }
-
-      // Action: Prompt (AI)
-      if(k=='p') await this.gen(f, v, app)
     }
 
     // Cleanup URL
     if(q) H[RS](0,'','#'+n)
 
-    // Final Render
+    // Final Render (From Disk)
     let c = await this.read(n)
     
     // Auto-Index
@@ -130,11 +129,11 @@ class OS {
     })
   }
 
-  async gen(f, prompt, app) {
+  async gen(ctx, prompt) {
     let [k,m,s,h] = ['k','m','s','h'].map(x=>L.getItem(x)),
-        c = await this.read(f) || '',
         g = h == 'google',
-        msg = `<SYS>${s}</SYS><FILE>${c}</FILE><REQ>${prompt}</REQ>`,
+        // Context is now the Accumulator (ctx)
+        msg = `<SYS>${s}</SYS><FILE>${ctx}</FILE><REQ>${prompt}</REQ>`,
         u = g ? `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}` : h,
         b = g ? { contents: [{ parts: [{ text: msg }] }] }
               : { model: m, messages: [{ role: 'user', content: msg }] },
@@ -150,13 +149,9 @@ class OS {
       res = await req.json()
       txt = g ? res.candidates?.[0]?.content?.parts?.[0]?.text
               : res.choices?.[0]?.message?.content
-      
-      if(txt) {
-        if(app) txt = c + txt
-        await this.write(f, txt)
-        // Tape continues...
-      }
-    } catch(e) { A.innerHTML = e }
+    } catch(e) { txt = e.message }
+    
+    return txt || ''
   }
 }
 
