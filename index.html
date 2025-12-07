@@ -26,8 +26,8 @@ class OS {
           b = k.filter(x => x.startsWith('boot')).sort()
       for (let f of b) {
         try {
-          let s = await this.read(f)
-          (new Function(O, s))(this)
+          // CHANGED: Inlined the read() to avoid variable declaration TDZ errors and save bytes
+          (new Function(O, await this.read(f)))(this)
         } catch(e) { console.error(f,e) }
       }
     }
