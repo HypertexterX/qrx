@@ -65,9 +65,6 @@ class OS {
     if(!location.hash) { H[RS](0,'','#home'); return this.run() }
 
     let h = location.hash.slice(1),
-        // CHANGED: Split View (n) from Pointer (f)
-        // n = Name of the view (immutable for this run)
-        // f = File pointer (mutable via ?f=...)
         [n, q] = h.split('?'),
         f = n,
         p = new URLSearchParams(q),
@@ -79,7 +76,7 @@ class OS {
       // State: Set Append Mode (?a=0 to turn off)
       if(k=='a') app = v!='0'
       
-      // Pointer: Switch Active File (Affects f, not n)
+      // Pointer: Switch Active File
       if(k=='f') f = v
 
       // Config: Set Key, Model, System, Host
@@ -97,17 +94,23 @@ class OS {
 
       // Action: Execute
       if(k=='x') {
-        try { await (new Function(O, v))(this) } catch(e){ console.error(e) }
+        try {
+          // CHANGED: Pass current file content (c) as 'v' to the function
+          // If function returns a value, write it back to f
+          let c = await this.read(f),
+              r = await (new Function(O, 'v', v))(this, c)
+          if(r!==void 0) await this.write(f, r)
+        } catch(e){ console.error(e) }
       }
 
       // Action: Prompt (AI)
       if(k=='p') await this.gen(f, v, app)
     }
 
-    // Cleanup URL - CHANGED: Restore URL to View (n) instead of Pointer (f)
+    // Cleanup URL
     if(q) H[RS](0,'','#'+n)
 
-    // Final Render - CHANGED: Render View (n)
+    // Final Render
     let c = await this.read(n)
     
     // Auto-Index
