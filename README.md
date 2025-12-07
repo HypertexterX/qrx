@@ -9,67 +9,69 @@ It is designed for hyper-portability, generative coding, and offline-first inter
 ## How it works
 
 1.  **The Kernel**: `index.html` contains the entire OS logic.
-2.  **The File System**: Files are stored in the browser's IndexedDB. The URL path determines the database name (e.g., `yoursite.com/os` vs `yoursite.com/private`), allowing for "multiverse" support.
-3.  **The Tape**: The URL hash (`#filename?cmd=val`) is read from left to right. Instructions are executed sequentially.
+2.  **The File System**: Files are stored in the browser's IndexedDB.
+3.  **The Pipeline**: The URL Hash acts as a stream processor.
+    *   **Accumulator (`v`)**: Starts with the content of the current view.
+    *   **Transformation**: Commands like `?r`, `?u`, and `?x` modify `v` in memory.
+    *   **Flush**: Changes are only saved to disk when explicitly committed with `?w`.
 
 ## Core Flags
 
-The protocol uses single-letter parameters to manipulate state and files.
+The protocol uses single-letter parameters to manipulate the Accumulator (`v`) and File Pointer (`f`).
 
 | Flag | Name | Function |
 | :--- | :--- | :--- |
-| `f` | **File** | Switches the active file pointer (target for writes/reads). |
-| `w` | **Write** | Writes the value to the current file. Overwrites by default. |
-| `a` | **Append** | Switches to "Append Mode". All subsequent `w`, `r`, `u`, or `p` actions append to the file instead of overwriting. Pass `?a=0` to disable. |
-| `r` | **Read** | Reads the content of *another* file and writes/appends it to the current file. |
-| `u` | **URL** | Fetches external text (via `fetch`) and writes/appends it to the current file. |
-| `x` | **Execute** | Evaluates the value as raw JavaScript within the context of the OS. |
+| `f` | **File** | Switches the active **write target** (pointer). Does *not* change the accumulator. |
+| `e` | **Echo** | Sets the accumulator value directly (e.g., `?e=Hello`). Replaces `v` unless `?a` is set. |
+| `r` | **Read** | Reads a file into the accumulator. |
+| `u` | **URL** | Fetches external text (via `fetch`) into the accumulator. |
+| `w` | **Write** | Flushes the current accumulator (`v`) to the target file (`f`). |
+| `a` | **Append** | Switches to "Append Mode". Subsequent `e`, `r`, `u`, `p` add to `v` instead of replacing it. |
+| `x` | **Execute** | Evaluates JS. Can transform `v` by returning a value (e.g., `return v.trim()`). |
 
 ## Prompting (AI)
 
-QRx supports generative AI via Google Gemini or OpenAI-compatible endpoints (Ollama, OpenRouter, etc.). Config keys are stored in `localStorage`.
+QRx supports generative AI via Google Gemini or OpenAI-compatible endpoints. The prompt (`p`) is concatenated directly to the System Prompt + Accumulator.
 
 | Flag | Name | Function |
 | :--- | :--- | :--- |
-| `p` | **Prompt** | Sends the current file context + the value of `p` to the LLM. The result is written/appended to the file. |
+| `p` | **Prompt** | Sends `System + v + Prompt` to the LLM. The result updates `v`. |
 | `k` | **Key** | Sets the API Key (persisted in LocalStorage). |
-| `m` | **Model** | Sets the Model ID (e.g., `gemini-1.5-flash`, `gpt-4o`). |
-| `h` | **Host** | Sets the Endpoint. Use `google` for Gemini or a URL for OpenAI/Ollama. |
+| `m` | **Model** | Sets the Model ID (e.g., `gemini-1.5-flash`). |
+| `h` | **Host** | Sets the Endpoint. Use `google` or a URL. |
 | `s` | **System** | Sets the System Prompt (persisted). |
 
 ## Examples
 
 **Hello World**
-Creates a file named `home` with HTML content.
+Echo text into memory and flush to file `home`.
 ```
-#home?w=<h1>Hello World</h1>
+#home?e=<h1>Hello World</h1>&w
 ```
 
 **The "Quine" (Self-replication)**
-Reads the kernel's own HTML and saves it to a file named `backup`.
+Reads the kernel's source and saves it to `backup`.
 ```
-#backup?u=index.html
-```
-
-**Configure AI**
-Sets up Google Gemini (only needed once per device).
-```
-#config?h=google&m=gemini-3-pro-preview&k=YOUR_API_KEY
+#backup?r=index.html&w
 ```
 
-**Generative Coding**
-Create a file named `game`, write a prompt, and ask AI to generate the code.
+**Pipeline Processing**
+Fetch data, transform it with JS, and save.
 ```
-#game?w=Make a pong game in HTML/JS&p=Write the code
+#data?u=https://api.co/json&x=return JSON.parse(v).count&w
 ```
+
+**Contextual Prompting**
+Build a context buffer from multiple files, then prompt the AI.
+```
+#scratch?e=CTX:&a&r=lib&r=app&p=Refactor code above&f=app&w
+```
+*(1. Clear accumulator 2. Append files 3. Prompt AI 4. Switch target to 'app' 5. Save)*
 
 ## Bootloader & Safe Mode
 
-*   **Bootloader**: Any file in the DB starting with `boot` (e.g., `boot.js`, `bootconf`) is automatically executed when the page loads.
-*   **Safe Mode**: Append `?safe` to the URL to disable the bootloader and prevent HTML/JS rehydration (view source mode).
-```
-#home?safe
-```
+*   **Bootloader**: Files starting with `boot` (e.g., `boot/init`) are automatically executed on load.
+*   **Safe Mode**: Append `?safe` to disable the bootloader (view source mode).
 
 ## License
 
