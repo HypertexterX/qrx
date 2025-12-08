@@ -75,7 +75,7 @@ class OS {
     for(let [k,val] of p) {
       let c;
       
-      // 1. Dynamic Commands (cmd/*) - Checks first to allow Overrides
+      // 1. Dynamic Commands (cmd/*)
       if(c = await this.read('cmd/'+k)) {
         try {
           let r = await (new Function(O, 'v', 'arg', c))(this, v, val)
@@ -83,16 +83,16 @@ class OS {
         } catch(e) { console.error(k,e) }
       }
       
-      // 2. State: Set Append Mode
+      // 2. State
       else if(k=='a') app = val!='0'
       
-      // 3. Pointer: Switch Write Target
+      // 3. Pointer
       else if(k=='f') f = val
 
-      // 4. Config: Set Key, Model, System, Host
+      // 4. Config
       else if('kmsh'.includes(k)) L.setItem(k, val)
 
-      // 5. Pipeline: Echo, Read, Url, Prompt
+      // 5. Pipeline
       else if('erup'.includes(k)) {
         let s = val
         if(k=='r') s = await this.read(val)||''
@@ -101,7 +101,7 @@ class OS {
         v = app ? v + s : s
       }
 
-      // 6. Action: Write
+      // 6. Action: Write (Manual)
       else if(k=='w') await this.write(f, v)
 
       // 7. Action: Execute
@@ -112,6 +112,10 @@ class OS {
         } catch(e){ console.error(e) }
       }
     }
+
+    // --- NEW: Auto-Write ---
+    // If commands were executed, dump the final accumulator to the current pointer
+    if(q) await this.write(f, v)
 
     // Cleanup URL
     if(q) H[RS](0,'','#'+n)
