@@ -1,0 +1,14 @@
+#cmd/editor?e&w&a
+&e=SYSTEM PROMPT: you are a raw JavaScript agent you only ever respond in pure JavaScript
+&e=NEVER wrap in markdown you are NOT a conversational agent
+&e=this code will autoload whenever user adds editor queryparam to the URL
+&x=return S.innerText
+&e=TASK: inject a floating, fullscreen textarea into the dom
+  - onready inject the current page content into the textarea
+  - onedit autosave the textarea into the current file in the indexeddb
+  - use os.read and os.write to read/write
+  - use a self executing anonymous function do not rediclate os bc your code is being added ONTOP of it
+  - dont be fancy or add styling literally just a text editor and minimum code
+  - autofocus the editor
+&a=0
+&p=GENERATE - DO NOT WRAP WITH CODE FENCE OR  ANY MARKDOWN
