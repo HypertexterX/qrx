@@ -11,9 +11,9 @@ It is designed for hyper-portability, generative coding, and offline-first inter
 1.  **The Kernel**: `index.html` contains the entire OS logic.
 2.  **The File System**: Files are stored in the browser's IndexedDB.
 3.  **The Pipeline**: The URL Hash acts as a stream processor.
-    *   **Accumulator (`v`)**: Starts with the content of the current view.
+    *   **Accumulator (`v`)**: Starts with the content of the current view (`#filename`).
     *   **Transformation**: Commands like `?r`, `?u`, and `?x` modify `v` in memory.
-    *   **Flush**: Changes are only saved to disk when explicitly committed with `?w`.
+    *   **Auto-Commit**: The final value of `v` is automatically written to the current file pointer (`f`) when processing finishes.
 
 ## Core Flags
 
@@ -21,57 +21,57 @@ The protocol uses single-letter parameters to manipulate the Accumulator (`v`) a
 
 | Flag | Name | Function |
 | :--- | :--- | :--- |
-| `f` | **File** | Switches the active **write target** (pointer). Does *not* change the accumulator. |
+| `f` | **File** | Switches the active **write target** (pointer). Defaults to the current view name. |
 | `e` | **Echo** | Sets the accumulator value directly (e.g., `?e=Hello`). Replaces `v` unless `?a` is set. |
-| `r` | **Read** | Reads a file into the accumulator. |
+| `r` | **Read** | Reads a file from the DB into the accumulator. |
 | `u` | **URL** | Fetches external text (via `fetch`) into the accumulator. |
-| `w` | **Write** | Flushes the current accumulator (`v`) to the target file (`f`). |
+| `w` | **Write** | *Manually* writes the current accumulator (`v`) to the target file (`f`). Useful for intermediate saves. |
 | `a` | **Append** | Switches to "Append Mode". Subsequent `e`, `r`, `u`, `p` add to `v` instead of replacing it. |
 | `x` | **Execute** | Evaluates JS. Can transform `v` by returning a value (e.g., `return v.trim()`). |
 
+## Programmable Flags (cmd/*)
+
+QRx is extensible. If a file exists in the `cmd/` directory (e.g., `cmd/foo`), it becomes a callable flag.
+
+**Example:**
+1. Create a file `cmd/upper`: `return v.toUpperCase()`
+2. Use it in the URL: `#home?upper`
+
+The command file receives: `(os, v, arg)`.
+
 ## Prompting (AI)
 
-QRx supports generative AI via Google Gemini or OpenAI-compatible endpoints. The prompt (`p`) is concatenated directly to the System Prompt + Accumulator.
+QRx supports generative AI via Google Gemini or OpenAI-compatible endpoints.
 
 | Flag | Name | Function |
 | :--- | :--- | :--- |
 | `p` | **Prompt** | Sends `System + v + Prompt` to the LLM. The result updates `v`. |
 | `k` | **Key** | Sets the API Key (persisted in LocalStorage). |
 | `m` | **Model** | Sets the Model ID (e.g., `gemini-1.5-flash`). |
-| `h` | **Host** | Sets the Endpoint. Use `google` or a URL. |
+| `h` | **Host** | Sets the Endpoint. Use `google` or a custom URL. |
 | `s` | **System** | Sets the System Prompt (persisted). |
+
+## Advanced Features
+
+*   **Multiverse**: The Database name is derived from the URL path (e.g., `/os1#home` vs `/os2#home`). This allows multiple isolated operating systems on one server.
+*   **Audit Log**: Every command executed is archived in the hidden `H/` directory with a timestamp, allowing for history replay.
+*   **Bootloader**: Files starting with `boot` (e.g., `boot/init`) are automatically executed on load.
+*   **Safe Mode**: Append `?safe` to disable the bootloader and script execution (view source mode).
 
 ## Examples
 
 **Hello World**
-Echo text into memory and flush to file `home`.
-```
-#home?e=<h1>Hello World</h1>&w
-```
+Echo text into memory. It automatically saves to `home`.
+`#home?e=<h1>Hello World</h1>`
 
 **The "Quine" (Self-replication)**
 Reads the kernel's source and saves it to `backup`.
-```
-#backup?r=index.html&w
-```
-
-**Pipeline Processing**
-Fetch data, transform it with JS, and save.
-```
-#data?u=https://api.co/json&x=return JSON.parse(v).count&w
-```
+`#backup?r=index.html`
 
 **Contextual Prompting**
-Build a context buffer from multiple files, then prompt the AI.
-```
-#scratch?e=CTX:&a&r=lib&r=app&p=Refactor code above&f=app&w
-```
-*(1. Clear accumulator 2. Append files 3. Prompt AI 4. Switch target to 'app' 5. Save)*
-
-## Bootloader & Safe Mode
-
-*   **Bootloader**: Files starting with `boot` (e.g., `boot/init`) are automatically executed on load.
-*   **Safe Mode**: Append `?safe` to disable the bootloader (view source mode).
+Build a context buffer from multiple files, prompt the AI, and save to a new file.
+`#scratch?e=CTX:&a&r=lib&r=app&p=Refactor code above&f=app_v2`
+*(1. Clear accumulator 2. Append files 3. Prompt AI 4. Switch target to 'app_v2' -> Auto-save)*
 
 ## License
 

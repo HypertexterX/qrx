@@ -19,10 +19,15 @@ class OS {
   }
 
   async boot() {
-    await this.cdb()
+    this.db = await this.cdb()
+    if(O!='os') this.os = await this.cdb('os')
+
     // Run boot files (Skip if ?safe)
     if(!new URLSearchParams(location.hash.split('?')[1]).has('safe')) {
-      let b = await this.keys(IDBKeyRange.bound('boot', 'boot\uffff'))
+      let q = IDBKeyRange.bound('boot', 'boot\uffff'),
+          b = await this.keys(q)
+      if(this.os) b = [...new Set([...b, ...await this.keys(q, this.os)])]
+
       for (let f of b) {
         try {
           (new Function(O, await this.read(f)))(this)
@@ -32,33 +37,37 @@ class OS {
     this.run()
   }
 
-  cdb() {
+  cdb(n=O) {
     return new Promise(r => {
-      let q = indexedDB.open(O)
+      let q = indexedDB.open(n)
       q.onupgradeneeded = e => e.target.result.createObjectStore(F)
-      q[ONS] = e => { this.db = e.target.result; r() }
+      q[ONS] = e => r(e.target.result)
     })
   }
 
-  tx(m='readonly') {
-    return this.db.transaction(F, m).objectStore(F)
+  tx(m='readonly', d=this.db) {
+    return d.transaction(F, m).objectStore(F)
   }
 
   write(k, v) {
     return new Promise(r => this.tx('readwrite').put(v, k)[ONS] = r)
   }
 
-  read(k) {
-    return new Promise(r => this.tx().get(k)[ONS] = e => r(e.target.result))
+  async read(k) {
+    return (await this.get(k)) || (this.os && await this.get(k, this.os))
   }
 
-  keys(q) {
-    return new Promise(r => this.tx().getAllKeys(q)[ONS] = e => r(e.target.result))
+  get(k, d) {
+    return new Promise(r => this.tx('readonly', d).get(k)[ONS] = e => r(e.target.result))
+  }
+
+  keys(q, d) {
+    return new Promise(r => this.tx('readonly', d).getAllKeys(q)[ONS] = e => r(e.target.result))
   }
 
   async run() {
     // Wait for DB
-    if(!this.db) await this.cdb()
+    if(!this.db) this.db = await this.cdb()
 
     // Redirect empty hash
     if(!location.hash) { H[RS](0,'','#home'); return this.run() }
