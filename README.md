@@ -32,10 +32,11 @@ The protocol uses single-letter parameters to manipulate the Accumulator (`v`) a
 ## Programmable Flags (cmd/*)
 
 QRx is extensible. If a file exists in the `cmd/` directory (e.g., `cmd/foo`), it becomes a callable flag.
+These commands are resolved via the **Global Overlay** (see below).
 
 **Example:**
-1. Create a file `cmd/upper`: `return v.toUpperCase()`
-2. Use it in the URL: `#home?upper`
+1. Create a file `cmd/foo`: `return v.toUpperCase()`
+2. Use it in the URL: `#home?foo`
 
 The command file receives: `(os, v, arg)`.
 
@@ -53,9 +54,10 @@ QRx supports generative AI via Google Gemini or OpenAI-compatible endpoints.
 
 ## Advanced Features
 
-*   **Multiverse**: The Database name is derived from the URL path (e.g., `/os1#home` vs `/os2#home`). This allows multiple isolated operating systems on one server.
+*   **Global Overlay**: The system connects to a dedicated `os` database alongside the local one. If a file (like `cmd/*`) is not found locally, it is read from the `os` partition. This allows for shared tools across projects.
+*   **Multiverse**: The Database name is derived from the URL path (e.g., `/project1` vs `/project2`). Each path has its own "User" storage but shares the "System" (`os`) storage.
+*   **Bootloader**: Files starting with `boot` (e.g., `boot/init`) are automatically executed on load. The kernel merges boot scripts from both the Local and Global databases.
 *   **Audit Log**: Every command executed is archived in the hidden `H/` directory with a timestamp, allowing for history replay.
-*   **Bootloader**: Files starting with `boot` (e.g., `boot/init`) are automatically executed on load.
 *   **Safe Mode**: Append `?safe` to disable the bootloader and script execution (view source mode).
 
 ## Examples
