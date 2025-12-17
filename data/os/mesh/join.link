@@ -1,0 +1,21 @@
+#mesh/join?e&w&a
+&e=SYSTEM PROMPT: you are a raw HTML and JS generator
+&e=NEVER wrap in markdown or code fences
+&e=OUTPUT only valid HTML with embedded script
+&x=return v + S.innerText
+&e=TASK: Generate a Bluetooth Mesh Chat interface
+  - The App must use navigator.bluetooth
+  - SERVICE UUID: 4fafc201-1fb5-459e-8fcc-c5c9c331914b
+  - CHARACTERISTIC UUID: beb5483e-36e1-4688-b7f5-ea07361b26a8
+  - UI: Minimalist dark mode. Full width input at bottom. Log above.
+  - LOGIC:
+    1. Create a Connect Button.
+    2. On Click: Request Device with filters for the Service UUID.
+    3. Connect GATT. Get Service. Get Characteristic.
+    4. Start Notifications.
+    5. Add event listener for characteristicvaluechanged. Decode bytes to text and append to log.
+    6. On Input Enter: Encode text to bytes and writeValue to characteristic.
+  - Do not use markdown formatting in output
+  - Do not use the hash symbol for IDs use getElementById
+&a=0
+&p=GENERATE - DO NOT WRAP WITH CODE FENCE OR ANY MARKDOWN

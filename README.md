@@ -2,6 +2,8 @@
 
 > A portable, AI-native operating system living entirely in the URL, small enough to fit inside a single QR code (< 3KB).
 
+![](./dist/index.qrcode.png)
+
 QRx is a lightweight, single-file virtual machine that turns your browser into a persistent operating system. It uses **IndexedDB** as a filesystem and the **URL Hash** as a linear command-line interface ("Machine Tape").
 
 It is designed for hyper-portability, generative coding, and offline-first interaction.
