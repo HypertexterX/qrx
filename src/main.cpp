@@ -6,8 +6,7 @@
 #define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHAR_UUID    "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-// LED PIN: On ESP32-S3 DevKitC-1, the RGB LED is usually GPIO 48.
-// If this doesn't work, change this to 38.
+// LED PIN (48 for S3 DevKit, try 38 if fails)
 #define LED_PIN 48 
 #define LED_COUNT 1
 
@@ -16,6 +15,9 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 // --- GLOBAL STATE ---
 NimBLECharacteristic* pCharacteristic = NULL;
 uint32_t deviceCount = 0;
+// LIMIT: How many browsers can chat at once? 
+// ESP32 usually handles 3-5 stable connections.
+#define MAX_CLIENTS 4 
 
 // --- LED HELPER ---
 void setRGB(int r, int g, int b) {
@@ -29,12 +31,27 @@ class ServerCallbacks: public NimBLEServerCallbacks {
         deviceCount++;
         Serial.printf("Client connected. Total: %d\n", deviceCount);
         setRGB(0, 255, 0); // GREEN
+
+        // --- CRITICAL FIX: RESTART ADVERTISING ---
+        // If we haven't hit the limit, keep shouting so others can join!
+        if(deviceCount < MAX_CLIENTS) {
+            NimBLEDevice::startAdvertising();
+        }
     };
 
     void onDisconnect(NimBLEServer* pServer) {
         deviceCount--;
         Serial.printf("Client disconnected. Total: %d\n", deviceCount);
-        if(deviceCount == 0) setRGB(255, 0, 0); // RED
+        
+        // If everyone left, go RED. If people remain, stay GREEN.
+        if(deviceCount == 0) {
+            setRGB(255, 0, 0); 
+            // Make sure we are advertising when empty
+            NimBLEDevice::startAdvertising();
+        } else {
+             // If a slot freed up, ensure we are advertising
+             NimBLEDevice::startAdvertising();
+        }
     }
 };
 
@@ -49,11 +66,12 @@ class DataCallbacks: public NimBLECharacteristicCallbacks {
             // Flash BLUE on data
             setRGB(0, 0, 255);
             
+            // This Notify sends to ALL connected clients automatically
             pCharacteristic->setValue(rxValue);
             pCharacteristic->notify();
 
-            // Small delay to make the flash visible, then revert
             delay(15); 
+            // Restore Green (if clients exist) or Red (if phantom data)
             if(deviceCount > 0) setRGB(0, 255, 0);
             else setRGB(255, 0, 0);
         }
@@ -63,19 +81,17 @@ class DataCallbacks: public NimBLECharacteristicCallbacks {
 void setup() {
   Serial.begin(115200);
   
-  // 1. Init LED
   strip.begin();
-  strip.setBrightness(20); // Low brightness (S3 LEDs are blinded bright)
-  setRGB(255, 0, 0); // RED = Power On, No Connections
+  strip.setBrightness(20); 
+  setRGB(255, 0, 0); // Start RED
 
-  // 2. Init BLE
   NimBLEDevice::init("QRx-Mesh-Node");
+  
   NimBLEServer *pServer = NimBLEDevice::createServer();
   pServer->setCallbacks(new ServerCallbacks());
-
+  
   NimBLEService *pService = pServer->createService(SERVICE_UUID);
 
-  // 3. Create Characteristic (The Fix is here: NIMBLE_PROPERTY::)
   pCharacteristic = pService->createCharacteristic(
                       CHAR_UUID,
                       NIMBLE_PROPERTY::READ |
@@ -85,14 +101,14 @@ void setup() {
 
   pCharacteristic->setCallbacks(new DataCallbacks());
 
-  // 4. Start Advertising
   pService->start();
+  
   NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(true);
   pAdvertising->start();
   
-  Serial.println("System Ready. Waiting for browser...");
+  Serial.println("System Ready. Multi-Client Enabled.");
 }
 
 void loop() {
