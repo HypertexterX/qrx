@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import { minify } from 'html-minifier-terser'
 import fs from 'fs'
 import path from 'path'
-import { galleryPlugin } from './dev/gallery.js'
+import { galleryPlugin } from './dev/gallery/index.js'
 
 const htmlMinifierPlugin = () => {
   return {

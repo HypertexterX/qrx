@@ -1,4 +1,4 @@
-#cmd/editor?e&w&x=return `BEGIN INSTRUCTIONS:
+#edit?e&w&x=return `BEGIN INSTRUCTIONS:
   WE ARE HERE: <URL>${decodeURI(location.href)}</URL>
 
   WHERE IS HERE?
@@ -13,10 +13,11 @@
     - this is why you must output raw unescaped code DO NOT use '''javascript or '''html etc
   
   TASK:
-  Return a JS script that inserts a fullscreen <textarea /> before <app id=A /> with the following criteria:
+  Return a JS script that inserts a styleless but fullscreen <textarea /> before <app id=A /> with the following criteria:
     - use the global ''os'' instance to read the current page in cb: os.get().then(cb)
     - automatically save oninput into the same page: os.write(valueToWrite).then(cb)
     - throttle as to not overload saving
     - observe for location.hash changes and update the textarea with the new page's content (do not immediately save when doing this)
     - autofocus the editor
+    - limit styles to dimensions, position, zindex only no colors or backgrounds or anything else
 `&p=NO MARKDOWN, BEGIN CODE:
