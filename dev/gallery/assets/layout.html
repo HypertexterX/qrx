@@ -7,6 +7,24 @@
   <style>
     <!-- INJECT_CSS -->
   </style>
+  <script>
+    // Global handler for the iframe toggle
+    function toggleFrame(btn, url) {
+      const card = btn.closest('.card');
+      const preview = card.querySelector('.preview-box');
+      
+      // Toggle logic
+      if (preview.innerHTML.trim()) {
+        preview.innerHTML = '';
+        btn.classList.remove('active');
+        btn.textContent = 'OPEN IN IFRAME';
+      } else {
+        preview.innerHTML = `<iframe src="${url}" loading="lazy"></iframe>`;
+        btn.classList.add('active');
+        btn.textContent = 'CLOSE IFRAME';
+      }
+    }
+  </script>
 </head>
 <body>
   <div class="grid">

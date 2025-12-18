@@ -31,13 +31,23 @@ export class LinkCard {
     const [base, ...rest] = compressed.split('?')
     const qs = rest.join('?')
     
-    let href = '/' + base.replace(/^\/+/, '') // Ensure leading slash
+    // Clean up the base path to ensure it works in hrefs
+    let cleanBase = base.trim()
+    let href = ''
+
+    if (cleanBase.startsWith('#')) {
+      href = '/' + cleanBase
+    } else if (cleanBase.startsWith('/')) {
+      href = cleanBase
+    } else {
+      // Default to hash if just a filename is provided
+      href = '/#' + cleanBase
+    }
     
     if (qs) {
       // Re-encode params to ensure validity
       const params = qs.split('&').map(p => {
         const [k, ...v] = p.split('=')
-        // Join v back in case values contained '='
         const val = v.join('=') 
         return `${k}=${encodeURIComponent(val)}`
       }).join('&')
@@ -59,6 +69,9 @@ export class LinkCard {
   render() {
     // Escape HTML for display in <pre> tags
     const safeCode = this.rawContent.replace(/</g, '&lt;')
+    
+    // Escape single quotes for the JS function call
+    const safeHref = this.href.replace(/'/g, "\\'")
 
     return `
       <div class="card">
@@ -68,8 +81,17 @@ export class LinkCard {
             <a href="${this.href}">${this.displayName}</a>
           </div>
         </div>
+        
+        <div class="actions">
+          <button class="btn" onclick="toggleFrame(this, '${safeHref}')">OPEN IN IFRAME</button>
+          <a class="btn" href="${this.href}">OPEN HERE</a>
+          <a class="btn" href="${this.href}" target="_blank">NEW TAB</a>
+        </div>
+        
+        <div class="preview-box"></div>
+
         <div class="source">
-          <details open>
+          <details>
             <summary>SOURCE</summary>
             <pre><code>${safeCode}</code></pre>
           </details>
