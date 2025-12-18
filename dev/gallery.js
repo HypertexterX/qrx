@@ -13,42 +13,39 @@ const TEMPLATE = (cards) => `
   }
   body { margin: 0; padding: 20px; background: var(--bg); color: var(--fg); }
   
-  /* Responsive Grid: 1 col mobile, 2 cols desktop */
   .grid { 
     display: grid; 
     gap: 20px; 
     grid-template-columns: 1fr; 
   }
   @media(min-width: 900px) {
-    .grid { grid-template-columns: 1fr 1fr; }
+    .grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
   }
 
   .card { 
     border: 1px solid var(--border); 
     background: var(--card);
     display: flex;
-    flex-direction: column; /* Stack QR top, Code bottom */
+    flex-direction: column;
     overflow: hidden;
   }
   
-  /* Top section: QR Code + Link */
   .header {
     background: #fff;
     color: #000;
     padding: 20px;
-    display: flex;
-    align-items: center;
     gap: 20px;
     border-bottom: 1px solid var(--border);
   }
   .qr-img { 
-    width: 120px; height: 120px; 
+    max-width: 100%;
     image-rendering: pixelated; 
-    flex-shrink: 0;
+    display: block;
+    margin-bottom: 1rem;
   }
   .link-info { flex-grow: 1; word-break: break-all; }
   .link-info a { 
-    color: #000; 
+    color: #f00; 
     font-weight: bold; 
     font-size: 1.1em;
     text-decoration: none;
@@ -56,9 +53,7 @@ const TEMPLATE = (cards) => `
   }
   .link-info a:hover { color: #555; border-color: #555; }
 
-  /* Bottom section: Source Code */
   .source { padding: 0; }
-  details { }
   summary { 
     padding: 10px 20px;
     cursor: pointer;
@@ -73,13 +68,13 @@ const TEMPLATE = (cards) => `
     margin: 0; 
     padding: 20px; 
     overflow-x: auto; 
-    white-space: pre-wrap; /* Wrap text */
+    white-space: pre-wrap; 
     word-break: break-word;
     font-size: 0.85em;
     line-height: 1.4;
     color: #bbb;
     background: #000;
-    max-height: 600px; /* Scrollable if massive */
+    max-height: 600px; 
     overflow-y: auto;
   }
 </style>
@@ -120,7 +115,6 @@ export const galleryPlugin = () => {
       if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true })
       if (!fs.existsSync(hyperDir)) return
 
-      // Recursive file getter
       const getLinkFiles = (dir) => {
         let results = []
         const list = fs.readdirSync(dir)
@@ -141,7 +135,6 @@ export const galleryPlugin = () => {
       for (const file of files) {
         const content = fs.readFileSync(file, 'utf8')
         
-        // Logic: Compress & Query String Encoding
         const compressed = content.replace(/[\r\n]+/g, ' ').trim()
         const [base, ...rest] = compressed.split('?')
         const qs = rest.join('?')
@@ -155,8 +148,11 @@ export const galleryPlugin = () => {
           href += '?' + params
         }
 
-        // Generate QR
+        // --- Clean Name Logic ---
         const relName = path.relative(hyperDir, file)
+        // Clean display name removes the .link extension
+        const displayName = relName.replace(/\.link$/, '')
+        // QR filename replaces slashes with underscores and changes .link to .png
         const qrName = relName.replace(/[\/\\]/g, '__').replace('.link', '.png')
         
         await qrcode.toFile(path.join(qrDir, qrName), href, {
@@ -166,7 +162,8 @@ export const galleryPlugin = () => {
           color: { dark: '#000000', light: '#ffffff' }
         })
 
-        cards.push(buildCard(`./qrcodes/${qrName}`, href, relName, content))
+        // Use displayName for the anchor text
+        cards.push(buildCard(`./qrcodes/${qrName}`, href, displayName, content))
       }
 
       if (cards.length > 0) {

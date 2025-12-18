@@ -9,42 +9,39 @@
   }
   body { margin: 0; padding: 20px; background: var(--bg); color: var(--fg); }
   
-  /* Responsive Grid: 1 col mobile, 2 cols desktop */
   .grid { 
     display: grid; 
     gap: 20px; 
     grid-template-columns: 1fr; 
   }
   @media(min-width: 900px) {
-    .grid { grid-template-columns: 1fr 1fr; }
+    .grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
   }
 
   .card { 
     border: 1px solid var(--border); 
     background: var(--card);
     display: flex;
-    flex-direction: column; /* Stack QR top, Code bottom */
+    flex-direction: column;
     overflow: hidden;
   }
   
-  /* Top section: QR Code + Link */
   .header {
     background: #fff;
     color: #000;
     padding: 20px;
-    display: flex;
-    align-items: center;
     gap: 20px;
     border-bottom: 1px solid var(--border);
   }
   .qr-img { 
-    width: 120px; height: 120px; 
+    max-width: 100%;
     image-rendering: pixelated; 
-    flex-shrink: 0;
+    display: block;
+    margin-bottom: 1rem;
   }
   .link-info { flex-grow: 1; word-break: break-all; }
   .link-info a { 
-    color: #000; 
+    color: #f00; 
     font-weight: bold; 
     font-size: 1.1em;
     text-decoration: none;
@@ -52,9 +49,7 @@
   }
   .link-info a:hover { color: #555; border-color: #555; }
 
-  /* Bottom section: Source Code */
   .source { padding: 0; }
-  details { }
   summary { 
     padding: 10px 20px;
     cursor: pointer;
@@ -69,13 +64,13 @@
     margin: 0; 
     padding: 20px; 
     overflow-x: auto; 
-    white-space: pre-wrap; /* Wrap text */
+    white-space: pre-wrap; 
     word-break: break-word;
     font-size: 0.85em;
     line-height: 1.4;
     color: #bbb;
     background: #000;
-    max-height: 600px; /* Scrollable if massive */
+    max-height: 600px; 
     overflow-y: auto;
   }
 </style>
@@ -84,9 +79,9 @@
   
   <div class="card">
     <div class="header">
-      <img src="./qrcodes/DEFAULT__cmd__editor.png" class="qr-img" />
+      <img src="./qrcodes/DEFAULT__editor.png" class="qr-img" />
       <div class="link-info">
-        <a href="/#cmd/editor?e=&w=&x=return%20%60BEGIN%20INSTRUCTIONS%3A%20%20%20WE%20ARE%20HERE%3A%20%3CURL%3E%24%7BdecodeURI(location.href)%7D%3C%2FURL%3E%20%20%20WHERE%20IS%20HERE%3F%20%20%20We%20are%20in%20a%20hypertext%20operating%20system%20that%20reimagines%20the%20IndexedDB%20as%20the%20filesystem%20and%20the%20URL%20as%20the%20terminal%20interface.%20Like%20in%20Plan9's%20''everything%20is%20a%20file''%2C%20here%2C%20''everything%20is%20a%20hyperlink''%20and%20you%20generate%20the%20code%20%20%20%20%20%20WHAT%20IS%20THE%20SOURCE%3F%20%20%20This%20is%20the%20sourcecode%3A%20%3CSOURCE%3E%24%7BS.innerText%7D%3C%2FSOURCE%3E%20%20%20HOW%20IT%20WORKS%3A%20%20%20-%20your%20output%20will%20either%20be%20injected%20into%20the%20source%20code%20above%20or%20eval()'ed%20%20%20%20%20-%20your%20code%20is%20automatically%20wrapped%20in%20anonymous%20function%20%20%20%20%20-%20this%20is%20why%20you%20must%20output%20raw%20unescaped%20code%20DO%20NOT%20use%20'''javascript%20or%20'''html%20etc%20%20%20%20%20%20TASK%3A%20%20%20Return%20a%20JS%20script%20that%20inserts%20a%20fullscreen%20%3Ctextarea%20%2F%3E%20before%20%3Capp%20id%3DA%20%2F%3E%20with%20the%20following%20criteria%3A%20%20%20%20%20-%20use%20the%20global%20''os''%20instance%20to%20read%20the%20current%20page%20in%20cb%3A%20os.get().then(cb)%20%20%20%20%20-%20automatically%20save%20oninput%20into%20the%20same%20page%3A%20os.write(valueToWrite).then(cb)%20%20%20%20%20-%20throttle%20as%20to%20not%20overload%20saving%20%20%20%20%20-%20observe%20for%20location.hash%20changes%20and%20update%20the%20textarea%20with%20the%20new%20page's%20content%20(do%20not%20immediately%20save%20when%20doing%20this)%20%20%20%20%20-%20autofocus%20the%20editor%20%60&p=NO%20MARKDOWN%2C%20BEGIN%20CODE%3A">DEFAULT/cmd/editor.link</a>
+        <a href="/#cmd/editor?e=&w=&x=return%20%60BEGIN%20INSTRUCTIONS%3A%20%20%20WE%20ARE%20HERE%3A%20%3CURL%3E%24%7BdecodeURI(location.href)%7D%3C%2FURL%3E%20%20%20WHERE%20IS%20HERE%3F%20%20%20We%20are%20in%20a%20hypertext%20operating%20system%20that%20reimagines%20the%20IndexedDB%20as%20the%20filesystem%20and%20the%20URL%20as%20the%20terminal%20interface.%20Like%20in%20Plan9's%20''everything%20is%20a%20file''%2C%20here%2C%20''everything%20is%20a%20hyperlink''%20and%20you%20generate%20the%20code%20%20%20%20%20%20WHAT%20IS%20THE%20SOURCE%3F%20%20%20This%20is%20the%20sourcecode%3A%20%3CSOURCE%3E%24%7BS.innerText%7D%3C%2FSOURCE%3E%20%20%20HOW%20IT%20WORKS%3A%20%20%20-%20your%20output%20will%20either%20be%20injected%20into%20the%20source%20code%20above%20or%20eval()'ed%20%20%20%20%20-%20your%20code%20is%20automatically%20wrapped%20in%20anonymous%20function%20%20%20%20%20-%20this%20is%20why%20you%20must%20output%20raw%20unescaped%20code%20DO%20NOT%20use%20'''javascript%20or%20'''html%20etc%20%20%20%20%20%20TASK%3A%20%20%20Return%20a%20JS%20script%20that%20inserts%20a%20fullscreen%20%3Ctextarea%20%2F%3E%20before%20%3Capp%20id%3DA%20%2F%3E%20with%20the%20following%20criteria%3A%20%20%20%20%20-%20use%20the%20global%20''os''%20instance%20to%20read%20the%20current%20page%20in%20cb%3A%20os.get().then(cb)%20%20%20%20%20-%20automatically%20save%20oninput%20into%20the%20same%20page%3A%20os.write(valueToWrite).then(cb)%20%20%20%20%20-%20throttle%20as%20to%20not%20overload%20saving%20%20%20%20%20-%20observe%20for%20location.hash%20changes%20and%20update%20the%20textarea%20with%20the%20new%20page's%20content%20(do%20not%20immediately%20save%20when%20doing%20this)%20%20%20%20%20-%20autofocus%20the%20editor%20%60&p=NO%20MARKDOWN%2C%20BEGIN%20CODE%3A">DEFAULT/editor</a>
       </div>
     </div>
     <div class="source">
@@ -121,9 +116,45 @@
 
   <div class="card">
     <div class="header">
-      <img src="./qrcodes/DEFAULT__mesh__join.png" class="qr-img" />
+      <img src="./qrcodes/DEFAULT__list.png" class="qr-img" />
       <div class="link-info">
-        <a href="/#mesh/join?e=&w=&a =&e=SYSTEM%20PROMPT%3A%20you%20are%20a%20raw%20HTML%20and%20JS%20generator%20&e=NEVER%20wrap%20in%20markdown%20or%20code%20fences%20&e=OUTPUT%20only%20valid%20HTML%20with%20embedded%20script%20&x=return%20v%20%2B%20S.innerText%20&e=TASK%3A%20Generate%20a%20Bluetooth%20Mesh%20Chat%20interface%20with%20MTU%20HANDLING%20%20%20-%20SERVICE%20UUID%3A%204fafc201-1fb5-459e-8fcc-c5c9c331914b%20%20%20-%20CHARACTERISTIC%20UUID%3A%20beb5483e-36e1-4688-b7f5-ea07361b26a8%20%20%20-%20UI%3A%20Minimalist%20dark%20mode.%20Full%20width%20input%20at%20bottom.%20Log%20above.%20%20%20-%20NETWORK%20LOGIC%20(CRITICAL)%3A%20%20%20%20%201.%20Bluetooth%20MTU%20is%20small.%20You%20MUST%20split%20messages.%20%20%20%20%202.%20ON%20SEND%3A%20%20%20%20%20%20%20%20-%20Generate%20a%20random%204-char%20ID%20for%20the%20message.%20%20%20%20%20%20%20%20-%20Split%20text%20into%20100-character%20chunks.%20%20%20%20%20%20%20%20-%20Send%20each%20chunk%20as%20JSON%3A%20%7B%22id%22%3A%22abc%22%2C%22i%22%3A0%2C%22n%22%3Atotal%2C%22d%22%3A%22chunk_text%22%7D%20%20%20%20%20%20%20%20-%20IMPORTANT%3A%20await%20a%2050ms%20delay%20between%20each%20write%20to%20prevent%20radio%20congestion.%20%20%20%20%203.%20ON%20RECEIVE%3A%20%20%20%20%20%20%20%20-%20Parse%20JSON.%20%20%20%20%20%20%20%20-%20Store%20chunks%20in%20a%20global%20buffer%20object%3A%20buffer%5Bid%5D%5Bi%5D%20%3D%20d.%20%20%20%20%20%20%20%20-%20Check%20if%20all%20'n'%20parts%20have%20arrived.%20%20%20%20%20%20%20%20-%20If%20complete%3A%20join%20the%20parts%2C%20display%20in%20log%2C%20and%20clear%20buffer.%20%20%20-%20Do%20not%20use%20markdown%20formatting%20in%20output%20%20%20-%20Do%20not%20use%20the%20hash%20symbol%20for%20IDs%20use%20getElementById%20&a=0%20&p=GENERATE%20-%20DO%20NOT%20WRAP%20WITH%20CODE%20FENCE%20OR%20ANY%20MARKDOWN">DEFAULT/mesh/join.link</a>
+        <a href="/#list?e=&w=&x=return%20%60BEGIN%20INSTRUCTIONS%3A%20%20%20WE%20ARE%20HERE%3A%20%3CURL%3E%24%7BdecodeURI(location.href)%7D%3C%2FURL%3E%20%20%20%20%20%20WHERE%20IS%20HERE%3F%20%20%20We%20are%20in%20a%20hypertext%20operating%20system%20that%20reimagines%20the%20IndexedDB%20as%20the%20filesystem%20and%20the%20URL%20as%20the%20terminal%20interface.%20Like%20in%20Plan9's%20''everything%20is%20a%20file''%2C%20here%2C%20''everything%20is%20a%20hyperlink''%20and%20you%20generate%20the%20code%20%20%20WHAT%20IS%20THE%20SOURCE%3F%20%20%20This%20is%20the%20sourcecode%3A%20%3CSOURCE%3E%24%7BS.innerText%7D%3C%2FSOURCE%3E%20%20%20HOW%20IT%20WORKS%3A%20%20%20-%20your%20output%20will%20either%20be%20injected%20into%20the%20source%20code%20above%20or%20eval()'ed%20%20%20-%20your%20code%20is%20automatically%20wrapped%20in%20anonymous%20function%20%20%20-%20this%20is%20why%20you%20must%20output%20raw%20unescaped%20code%20DO%20NOT%20use%20'''javascript%20or%20'''html%20etc%20%20%20TASK%3A%20%20%20Render%20HTML%20with%20a%20%3Cscript%3E%20tag%20that%20renders%20a%20file%20explorer%20into%20%3Capp%20id%3DA%20%2F%3E%3A%20%20%20%20%20-%20analyze%20the%20source%20code%20to%20find%20the%20method%20for%20fetching%20all%20database%20keys%2C%20eg%20os.keys().then()%20%20%20%20%20-%20render%20them%20as%20a%20clean%20%3Cul%3E%20list%20%20%20%20%20-%20links%20should%20be%20in%20format%20%3Ca%20href%3D'%23filename'%3Efilename%3C%2Fa%3E%20%20%20%20%20-%20output%20html%20do%20not%20return%20value%20%60&p=NO%20MARKDOWN%2C%20BEGIN%20CODE%3A">DEFAULT/list</a>
+      </div>
+    </div>
+    <div class="source">
+      <details open>
+        <summary>SOURCE</summary>
+        <pre><code>#list?e&w&x=return `BEGIN INSTRUCTIONS:
+  WE ARE HERE: &lt;URL>${decodeURI(location.href)}&lt;/URL>
+  
+  WHERE IS HERE?
+  We are in a hypertext operating system that reimagines the IndexedDB as the filesystem and the URL as the terminal interface. Like in Plan9's ''everything is a file'', here, ''everything is a hyperlink'' and you generate the code
+
+  WHAT IS THE SOURCE?
+  This is the sourcecode: &lt;SOURCE>${S.innerText}&lt;/SOURCE>
+
+  HOW IT WORKS:
+  - your output will either be injected into the source code above or eval()'ed
+  - your code is automatically wrapped in anonymous function
+  - this is why you must output raw unescaped code DO NOT use '''javascript or '''html etc
+
+  TASK:
+  Render HTML with a &lt;script> tag that renders a file explorer into &lt;app id=A />:
+    - analyze the source code to find the method for fetching all database keys, eg os.keys().then()
+    - render them as a clean &lt;ul> list
+    - links should be in format &lt;a href='#filename'>filename&lt;/a>
+    - output html do not return value
+`&p=NO MARKDOWN, BEGIN CODE:</code></pre>
+      </details>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="header">
+      <img src="./qrcodes/mesh__join.png" class="qr-img" />
+      <div class="link-info">
+        <a href="/#mesh/join?e=&w=&a =&e=SYSTEM%20PROMPT%3A%20you%20are%20a%20raw%20HTML%20and%20JS%20generator%20&e=NEVER%20wrap%20in%20markdown%20or%20code%20fences%20&e=OUTPUT%20only%20valid%20HTML%20with%20embedded%20script%20&x=return%20v%20%2B%20S.innerText%20&e=TASK%3A%20Generate%20a%20Bluetooth%20Mesh%20Chat%20interface%20with%20MTU%20HANDLING%20%20%20-%20SERVICE%20UUID%3A%204fafc201-1fb5-459e-8fcc-c5c9c331914b%20%20%20-%20CHARACTERISTIC%20UUID%3A%20beb5483e-36e1-4688-b7f5-ea07361b26a8%20%20%20-%20UI%3A%20Minimalist%20dark%20mode.%20Full%20width%20input%20at%20bottom.%20Log%20above.%20%20%20-%20NETWORK%20LOGIC%20(CRITICAL)%3A%20%20%20%20%201.%20Bluetooth%20MTU%20is%20small.%20You%20MUST%20split%20messages.%20%20%20%20%202.%20ON%20SEND%3A%20%20%20%20%20%20%20%20-%20Generate%20a%20random%204-char%20ID%20for%20the%20message.%20%20%20%20%20%20%20%20-%20Split%20text%20into%20100-character%20chunks.%20%20%20%20%20%20%20%20-%20Send%20each%20chunk%20as%20JSON%3A%20%7B%22id%22%3A%22abc%22%2C%22i%22%3A0%2C%22n%22%3Atotal%2C%22d%22%3A%22chunk_text%22%7D%20%20%20%20%20%20%20%20-%20IMPORTANT%3A%20await%20a%2050ms%20delay%20between%20each%20write%20to%20prevent%20radio%20congestion.%20%20%20%20%203.%20ON%20RECEIVE%3A%20%20%20%20%20%20%20%20-%20Parse%20JSON.%20%20%20%20%20%20%20%20-%20Store%20chunks%20in%20a%20global%20buffer%20object%3A%20buffer%5Bid%5D%5Bi%5D%20%3D%20d.%20%20%20%20%20%20%20%20-%20Check%20if%20all%20'n'%20parts%20have%20arrived.%20%20%20%20%20%20%20%20-%20If%20complete%3A%20join%20the%20parts%2C%20display%20in%20log%2C%20and%20clear%20buffer.%20%20%20-%20Do%20not%20use%20markdown%20formatting%20in%20output%20%20%20-%20Do%20not%20use%20the%20hash%20symbol%20for%20IDs%20use%20getElementById%20&a=0%20&p=GENERATE%20-%20DO%20NOT%20WRAP%20WITH%20CODE%20FENCE%20OR%20ANY%20MARKDOWN">mesh/join</a>
       </div>
     </div>
     <div class="source">

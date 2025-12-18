@@ -86,24 +86,16 @@ class OS {
       val = decodeURIComponent(val)
       let r, s
       
-      // 1. Dynamic Commands (cmd/*)
-      if(c = await this.read('cmd/'+k)) {
-        try {
-          r = await (new Function(O, 'v', 'arg', c))(this, v, val)
-          if(r!==void 0) v = r
-        } catch(e) { console.error(k,e) }
-      }
+      // 1. State
+      if(k=='a') app = val!='0'
       
-      // 2. State
-      else if(k=='a') app = val!='0'
-      
-      // 3. Pointer
+      // 2. Pointer
       else if(k=='f') f = val
 
-      // 4. Config
+      // 3. Config
       else if('kmsh'.includes(k)) L.setItem(k, val)
 
-      // 5. Pipeline
+      // 4. Pipeline
       else if('erup'.includes(k)) {
         s = val
         if(k=='r') s = await this.read(val)||''
@@ -112,15 +104,26 @@ class OS {
         v = app ? v + s : s
       }
 
-      // 6. Action: Write (Manual)
+      // 5. Action: Write (Manual)
       else if(k=='w') await this.write(v, f)
 
-      // 7. Action: Execute
+      // 6. Action: Execute
       else if(k=='x') {
         try {
           r = await (new Function(O, 'v', val))(this, v)
           if(r!==void 0) v = r
         } catch(e){ console.error(e) }
+      }
+
+      // 7. Dynamic Commands (Polymorphic Autoloader)
+      // Tries to execute file 'k' as code. If syntax fails, treats as content.
+      else if(c = await this.read(k)) {
+        try {
+          r = await (new Function(O, 'v', 'arg', c))(this, v, val)
+          if(r!==void 0) v = r
+        } catch(e) { 
+           v = app ? v + c : c
+        }
       }
     }
 
