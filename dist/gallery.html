@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QRx Hyperlinks</title>
+<style>
+  :root { 
+    --bg: #0a0a0a; --fg: #e0e0e0; --accent: #00ffcc; --card: #111; --border: #333;
+    font-family: 'Courier New', monospace; 
+  }
+  body { margin: 0; padding: 20px; background: var(--bg); color: var(--fg); }
+  
+  /* Responsive Grid: 1 col mobile, 2 cols desktop */
+  .grid { 
+    display: grid; 
+    gap: 20px; 
+    grid-template-columns: 1fr; 
+  }
+  @media(min-width: 900px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .card { 
+    border: 1px solid var(--border); 
+    background: var(--card);
+    display: flex;
+    flex-direction: column; /* Stack QR top, Code bottom */
+    overflow: hidden;
+  }
+  
+  /* Top section: QR Code + Link */
+  .header {
+    background: #fff;
+    color: #000;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .qr-img { 
+    width: 120px; height: 120px; 
+    image-rendering: pixelated; 
+    flex-shrink: 0;
+  }
+  .link-info { flex-grow: 1; word-break: break-all; }
+  .link-info a { 
+    color: #000; 
+    font-weight: bold; 
+    font-size: 1.1em;
+    text-decoration: none;
+    border-bottom: 2px solid #000;
+  }
+  .link-info a:hover { color: #555; border-color: #555; }
+
+  /* Bottom section: Source Code */
+  .source { padding: 0; }
+  details { }
+  summary { 
+    padding: 10px 20px;
+    cursor: pointer;
+    background: #1a1a1a;
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+    color: var(--accent);
+  }
+  summary:hover { background: #222; }
+  
+  pre { 
+    margin: 0; 
+    padding: 20px; 
+    overflow-x: auto; 
+    white-space: pre-wrap; /* Wrap text */
+    word-break: break-word;
+    font-size: 0.85em;
+    line-height: 1.4;
+    color: #bbb;
+    background: #000;
+    max-height: 600px; /* Scrollable if massive */
+    overflow-y: auto;
+  }
+</style>
+
+<div class="grid">
+  
+  <div class="card">
+    <div class="header">
+      <img src="./qrcodes/DEFAULT__cmd__editor.png" class="qr-img" />
+      <div class="link-info">
+        <a href="/#cmd/editor?e=&w=&x=return%20%60BEGIN%20INSTRUCTIONS%3A%20%20%20WE%20ARE%20HERE%3A%20%3CURL%3E%24%7BdecodeURI(location.href)%7D%3C%2FURL%3E%20%20%20WHERE%20IS%20HERE%3F%20%20%20We%20are%20in%20a%20hypertext%20operating%20system%20that%20reimagines%20the%20IndexedDB%20as%20the%20filesystem%20and%20the%20URL%20as%20the%20terminal%20interface.%20Like%20in%20Plan9's%20''everything%20is%20a%20file''%2C%20here%2C%20''everything%20is%20a%20hyperlink''%20and%20you%20generate%20the%20code%20%20%20%20%20%20WHAT%20IS%20THE%20SOURCE%3F%20%20%20This%20is%20the%20sourcecode%3A%20%3CSOURCE%3E%24%7BS.innerText%7D%3C%2FSOURCE%3E%20%20%20HOW%20IT%20WORKS%3A%20%20%20-%20your%20output%20will%20either%20be%20injected%20into%20the%20source%20code%20above%20or%20eval()'ed%20%20%20%20%20-%20your%20code%20is%20automatically%20wrapped%20in%20anonymous%20function%20%20%20%20%20-%20this%20is%20why%20you%20must%20output%20raw%20unescaped%20code%20DO%20NOT%20use%20'''javascript%20or%20'''html%20etc%20%20%20%20%20%20TASK%3A%20%20%20Return%20a%20JS%20script%20that%20inserts%20a%20fullscreen%20%3Ctextarea%20%2F%3E%20before%20%3Capp%20id%3DA%20%2F%3E%20with%20the%20following%20criteria%3A%20%20%20%20%20-%20use%20the%20global%20''os''%20instance%20to%20read%20the%20current%20page%20in%20cb%3A%20os.get().then(cb)%20%20%20%20%20-%20automatically%20save%20oninput%20into%20the%20same%20page%3A%20os.write(valueToWrite).then(cb)%20%20%20%20%20-%20throttle%20as%20to%20not%20overload%20saving%20%20%20%20%20-%20observe%20for%20location.hash%20changes%20and%20update%20the%20textarea%20with%20the%20new%20page's%20content%20(do%20not%20immediately%20save%20when%20doing%20this)%20%20%20%20%20-%20autofocus%20the%20editor%20%60&p=NO%20MARKDOWN%2C%20BEGIN%20CODE%3A">DEFAULT/cmd/editor.link</a>
+      </div>
+    </div>
+    <div class="source">
+      <details open>
+        <summary>SOURCE</summary>
+        <pre><code>#cmd/editor?e&w&x=return `BEGIN INSTRUCTIONS:
+  WE ARE HERE: &lt;URL>${decodeURI(location.href)}&lt;/URL>
+
+  WHERE IS HERE?
+  We are in a hypertext operating system that reimagines the IndexedDB as the filesystem and the URL as the terminal interface. Like in Plan9's ''everything is a file'', here, ''everything is a hyperlink'' and you generate the code
+  
+  WHAT IS THE SOURCE?
+  This is the sourcecode: &lt;SOURCE>${S.innerText}&lt;/SOURCE>
+
+  HOW IT WORKS:
+  - your output will either be injected into the source code above or eval()'ed
+    - your code is automatically wrapped in anonymous function
+    - this is why you must output raw unescaped code DO NOT use '''javascript or '''html etc
+  
+  TASK:
+  Return a JS script that inserts a fullscreen &lt;textarea /> before &lt;app id=A /> with the following criteria:
+    - use the global ''os'' instance to read the current page in cb: os.get().then(cb)
+    - automatically save oninput into the same page: os.write(valueToWrite).then(cb)
+    - throttle as to not overload saving
+    - observe for location.hash changes and update the textarea with the new page's content (do not immediately save when doing this)
+    - autofocus the editor
+`&p=NO MARKDOWN, BEGIN CODE:</code></pre>
+      </details>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="header">
+      <img src="./qrcodes/DEFAULT__mesh__join.png" class="qr-img" />
+      <div class="link-info">
+        <a href="/#mesh/join?e=&w=&a =&e=SYSTEM%20PROMPT%3A%20you%20are%20a%20raw%20HTML%20and%20JS%20generator%20&e=NEVER%20wrap%20in%20markdown%20or%20code%20fences%20&e=OUTPUT%20only%20valid%20HTML%20with%20embedded%20script%20&x=return%20v%20%2B%20S.innerText%20&e=TASK%3A%20Generate%20a%20Bluetooth%20Mesh%20Chat%20interface%20with%20MTU%20HANDLING%20%20%20-%20SERVICE%20UUID%3A%204fafc201-1fb5-459e-8fcc-c5c9c331914b%20%20%20-%20CHARACTERISTIC%20UUID%3A%20beb5483e-36e1-4688-b7f5-ea07361b26a8%20%20%20-%20UI%3A%20Minimalist%20dark%20mode.%20Full%20width%20input%20at%20bottom.%20Log%20above.%20%20%20-%20NETWORK%20LOGIC%20(CRITICAL)%3A%20%20%20%20%201.%20Bluetooth%20MTU%20is%20small.%20You%20MUST%20split%20messages.%20%20%20%20%202.%20ON%20SEND%3A%20%20%20%20%20%20%20%20-%20Generate%20a%20random%204-char%20ID%20for%20the%20message.%20%20%20%20%20%20%20%20-%20Split%20text%20into%20100-character%20chunks.%20%20%20%20%20%20%20%20-%20Send%20each%20chunk%20as%20JSON%3A%20%7B%22id%22%3A%22abc%22%2C%22i%22%3A0%2C%22n%22%3Atotal%2C%22d%22%3A%22chunk_text%22%7D%20%20%20%20%20%20%20%20-%20IMPORTANT%3A%20await%20a%2050ms%20delay%20between%20each%20write%20to%20prevent%20radio%20congestion.%20%20%20%20%203.%20ON%20RECEIVE%3A%20%20%20%20%20%20%20%20-%20Parse%20JSON.%20%20%20%20%20%20%20%20-%20Store%20chunks%20in%20a%20global%20buffer%20object%3A%20buffer%5Bid%5D%5Bi%5D%20%3D%20d.%20%20%20%20%20%20%20%20-%20Check%20if%20all%20'n'%20parts%20have%20arrived.%20%20%20%20%20%20%20%20-%20If%20complete%3A%20join%20the%20parts%2C%20display%20in%20log%2C%20and%20clear%20buffer.%20%20%20-%20Do%20not%20use%20markdown%20formatting%20in%20output%20%20%20-%20Do%20not%20use%20the%20hash%20symbol%20for%20IDs%20use%20getElementById%20&a=0%20&p=GENERATE%20-%20DO%20NOT%20WRAP%20WITH%20CODE%20FENCE%20OR%20ANY%20MARKDOWN">DEFAULT/mesh/join.link</a>
+      </div>
+    </div>
+    <div class="source">
+      <details open>
+        <summary>SOURCE</summary>
+        <pre><code>#mesh/join?e&w&a
+&e=SYSTEM PROMPT: you are a raw HTML and JS generator
+&e=NEVER wrap in markdown or code fences
+&e=OUTPUT only valid HTML with embedded script
+&x=return v + S.innerText
+&e=TASK: Generate a Bluetooth Mesh Chat interface with MTU HANDLING
+  - SERVICE UUID: 4fafc201-1fb5-459e-8fcc-c5c9c331914b
+  - CHARACTERISTIC UUID: beb5483e-36e1-4688-b7f5-ea07361b26a8
+  - UI: Minimalist dark mode. Full width input at bottom. Log above.
+  - NETWORK LOGIC (CRITICAL):
+    1. Bluetooth MTU is small. You MUST split messages.
+    2. ON SEND:
+       - Generate a random 4-char ID for the message.
+       - Split text into 100-character chunks.
+       - Send each chunk as JSON: {"id":"abc","i":0,"n":total,"d":"chunk_text"}
+       - IMPORTANT: await a 50ms delay between each write to prevent radio congestion.
+    3. ON RECEIVE:
+       - Parse JSON.
+       - Store chunks in a global buffer object: buffer[id][i] = d.
+       - Check if all 'n' parts have arrived.
+       - If complete: join the parts, display in log, and clear buffer.
+  - Do not use markdown formatting in output
+  - Do not use the hash symbol for IDs use getElementById
+&a=0
+&p=GENERATE - DO NOT WRAP WITH CODE FENCE OR ANY MARKDOWN</code></pre>
+      </details>
+    </div>
+  </div>
+
+</div>
