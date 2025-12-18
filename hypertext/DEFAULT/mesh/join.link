@@ -2,7 +2,7 @@
 &e=SYSTEM PROMPT: you are a raw HTML and JS generator
 &e=NEVER wrap in markdown or code fences
 &e=OUTPUT only valid HTML with embedded script
-&x=return v + document.querySelector('S').innerText
+&x=return v + S.innerText
 &e=TASK: Generate a Bluetooth Mesh Chat interface with MTU HANDLING
   - SERVICE UUID: 4fafc201-1fb5-459e-8fcc-c5c9c331914b
   - CHARACTERISTIC UUID: beb5483e-36e1-4688-b7f5-ea07361b26a8

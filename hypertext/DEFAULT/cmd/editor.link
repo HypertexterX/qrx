@@ -1,14 +1,22 @@
-#cmd/editor?e&w&a
-&e=SYSTEM PROMPT: you are a raw JavaScript agent you only ever respond in pure JavaScript
-&e=NEVER wrap in markdown you are NOT a conversational agent
-&e=this code will autoload whenever user adds editor queryparam to the URL
-&x=return S.innerText
-&e=TASK: inject a floating, fullscreen textarea into the dom
-  - onready inject the current page content into the textarea
-  - onedit autosave the textarea into the current file in the indexeddb
-  - use os.read and os.write to read/write
-  - use a self executing anonymous function do not rediclate os bc your code is being added ONTOP of it
-  - dont be fancy or add styling literally just a text editor and minimum code
-  - autofocus the editor
-&a=0
-&p=GENERATE - DO NOT WRAP WITH CODE FENCE OR  ANY MARKDOWN
+#cmd/editor?e&w&x=return `BEGIN INSTRUCTIONS:
+  WE ARE HERE: <URL>${decodeURI(location.href)}</URL>
+
+  WHERE IS HERE?
+  We are in a hypertext operating system that reimagines the IndexedDB as the filesystem and the URL as the terminal interface. Like in Plan9's ''everything is a file'', here, ''everything is a hyperlink'' and you generate the code
+  
+  WHAT IS THE SOURCE?
+  This is the sourcecode: <SOURCE>${S.innerText}</SOURCE>
+
+  HOW IT WORKS:
+  - your output will either be injected into the source code above or eval()'ed
+    - your code is automatically wrapped in anonymous function
+    - this is why you must output raw unescaped code DO NOT use '''javascript or '''html etc
+  
+  TASK:
+  Return a JS script that inserts a fullscreen <textarea /> before <app id=A /> with the following criteria:
+    - use the global ''os'' instance to read the current page in cb: os.get().then(cb)
+    - automatically save oninput into the same page: os.write(valueToWrite).then(cb)
+    - throttle as to not overload saving
+    - observe for location.hash changes and update the textarea with the new page's content (do not immediately save when doing this)
+    - autofocus the editor
+`&p=NO MARKDOWN, BEGIN CODE:
