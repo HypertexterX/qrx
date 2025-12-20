@@ -2,7 +2,7 @@
   WE ARE HERE: <URL>${decodeURI(location.href)}</URL>
 
   WHERE IS HERE?
-  We are in a hypertext operating system that reimagines the IndexedDB as the filesystem and the URL as the terminal interface. Like in Plan9's ''everything is a file'', here, ''everything is a hyperlink'' and you generate the code
+  We are in a hypertext operating system that reimagines the IndexedDB as the filesystem and the URL as the terminal interface. Like in Plan9's "everything is a file", here, "everything is a hyperlink" and you generate the code
   
   WHAT IS THE SOURCE?
   This is the sourcecode: <SOURCE>${S.innerText}</SOURCE>
@@ -14,7 +14,7 @@
   
   TASK:
   Return a JS script that inserts a styleless but fullscreen <textarea /> before <app id=A /> with the following criteria:
-    - use the global ''os'' instance to read the current page in cb: os.get().then(cb)
+    - use the global "os" instance to read the current page in cb: os.get().then(cb)
     - automatically save oninput into the same page: os.write(valueToWrite).then(cb)
     - throttle as to not overload saving
     - observe for location.hash changes and update the textarea with the new page's content (do not immediately save when doing this)

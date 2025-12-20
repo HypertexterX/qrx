@@ -7,7 +7,7 @@ export const galleryPlugin = () => {
     const root = process.cwd()
     
     const config = {
-      sourceDir: path.resolve(root, 'hypertext'),
+      sourceDir: path.resolve(root, 'qrcodes'),
       distDir: path.resolve(root, 'dist'),
       qrSubDir: 'qrcodes',
       outputFile: 'gallery.html'
@@ -34,7 +34,7 @@ export const galleryPlugin = () => {
 
       // Add custom paths to Vite's watcher
       const watchDirs = [
-        path.resolve(process.cwd(), 'hypertext'),
+        path.resolve(process.cwd(), 'qrcodes'),
         path.resolve(process.cwd(), 'dev')
       ]
       server.watcher.add(watchDirs)
