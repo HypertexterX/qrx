@@ -55,6 +55,10 @@ export class GalleryGenerator {
     const list = fs.readdirSync(dir)
     
     list.forEach(file => {
+      if (file === 'private') {
+        return; 
+      }
+
       const fullPath = path.join(dir, file)
       const stat = fs.statSync(fullPath)
       

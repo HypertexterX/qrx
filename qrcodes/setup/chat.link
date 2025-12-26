@@ -22,8 +22,12 @@
     - add a save button that opens a new tab to #chats/YYMMDD-HHMMSS?e=encodeURIComponent(chatHistory)
       - this uses the operating systems echo hyperlink mechanism in a new browser tab to save
       - do not save anything to the os yourself directly, only use the hyperlink method
-      - replace YYMMDD-HHMMSS with timestamp
+      - replace YYMMDD-HHMMSS with timestamp as the default filename
       - once saved reuse the same timestamp (even if time changed), this way we don't create multiple copies of same chat
-      - allow option to set name
+      - allow option to set name but use timestamp as default (so user can add to it, dont just use placeholder actually set the value)
+      - replace spaces in filename with hyphens
+      - use "os.write" to save
+      - use dark mode
+      - CTRL+ENTER to submit textarea (along with submit button)
     - do not return an entire html document, just the HTML tags for this and the script tag
 `&p=NO MARKDOWN, BEGIN CODE:

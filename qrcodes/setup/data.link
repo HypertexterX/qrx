@@ -1,4 +1,4 @@
-#chat?e&w&x=return `BEGIN INSTRUCTIONS:
+#data?e&w&x=return `BEGIN INSTRUCTIONS:
   WE ARE HERE: <URL>${decodeURI(location.href)}</URL>
 
   WHERE IS HERE?
@@ -13,11 +13,12 @@
     - this is why you must output raw unescaped code DO NOT use '''javascript or '''html etc
   
   TASK:
-  Return a chat interface
-    - use the global "os" instance to read
-    - reuse this apps existing api/model, stored in "localStorage.k" and "localStorage.m"
-    - use streaming mode
-    - add a textarea so that we can change the model or host
-    - like with this app, if the hostname is "google" then use the google api otherwise use the openai standard endpoint (like in the source)
-    - do not return an entire html document, just the HTML and code
+  Generate a simple indexeddb to json exporter/importer:
+    - use the global "window.os" instance
+    - do not return an entire html document, just the HTML tags for this and the script tag
+    - add export button that uses Compression Streams API to export to downloadable file
+    - add an import button to import the same file
+    - add drag and drop
+    - the filename should be YYMMDD-HHMM (including appropriate file extension)
+    - must be json object in form {tableName: {record, record, record}, ...}
 `&p=NO MARKDOWN, BEGIN CODE:
