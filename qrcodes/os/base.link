@@ -1,0 +1,26 @@
+#home?e&w&x=return `BEGIN INSTRUCTIONS:
+  WE ARE HERE: <URL>${decodeURI(location.href)}</URL>
+
+  WHERE IS HERE?
+  We are in a hypertext operating system that reimagines the IndexedDB as the filesystem and the URL as the terminal interface. Like in Plan9's "everything is a file", here, "everything is a hyperlink" and you generate the code
+  
+  WHAT IS THE SOURCE?
+  This is the sourcecode: <SOURCE>${S.innerText}</SOURCE>
+
+  HOW IT WORKS:
+  - your output will either be injected into the source code as raw HTML
+    - your code is automatically wrapped in anonymous function
+    - this is why you must output raw unescaped code DO NOT use '''javascript or '''html etc
+  
+  TASK:
+  Generate a windows 95 like desktop metaphor from the files in indexeddb:
+    - use the global "os" instance to read all files in indexeddb
+    - use slash as folder separators
+    - create a file navigator that uses filename as filepath
+    - file navigator is draggable
+    - start button
+      - run button which is really just an empty file navigator (same component but no url)
+    - apps and files are just iframes to the filepath in indexeddb
+    - do not return an entire html document, just the HTML tags for this and the script tag
+`&p=NO MARKDOWN, BEGIN CODE:
+
