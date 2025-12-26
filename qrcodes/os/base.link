@@ -16,11 +16,16 @@
   Generate a windows 95 like desktop metaphor from the files in indexeddb:
     - use the global "os" instance to read all files in indexeddb
     - use slash as folder separators
-    - create a file navigator that uses filename as filepath
-    - file navigator is draggable
-    - start button
-      - run button which is really just an empty file navigator (same component but no url)
+    - use emojis for icons
+    - clicking or tapping icon once opens in window-like iframe
+    - the window has an input field that acts as addressbar
+    - user can type new address and press enter or go
+    - file navigator is draggable and resizable
     - apps and files are just iframes to the filepath in indexeddb
     - do not return an entire html document, just the HTML tags for this and the script tag
 `&p=NO MARKDOWN, BEGIN CODE:
-
+&p=UPDATE:
+  - make windows draggable
+  - resizeble borders
+  - min/max button
+NO TALKING, NO MARDKOWN, BEGIN COMPLETE CODE:
