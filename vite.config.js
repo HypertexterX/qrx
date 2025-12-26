@@ -25,6 +25,16 @@ const htmlMinifierPlugin = () => {
 
 export default defineConfig({
   plugins: [htmlMinifierPlugin(), galleryPlugin()],
+  server: {
+    watch: {
+      // Return true to IGNORE a file. 
+      // We ignore everything UNLESS it includes these specific filenames.
+      ignored: (path) => {
+        const isAllowed = path.includes('index.html') || path.includes('vite.config.js');
+        return !isAllowed; 
+      },
+    },
+  },
   build: {
     minify: 'terser',
     terserOptions: {
