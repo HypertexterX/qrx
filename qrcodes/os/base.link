@@ -18,14 +18,23 @@
     - use slash as folder separators
     - use emojis for icons
     - clicking or tapping icon once opens in window-like iframe
-    - the window has an input field that acts as addressbar
-    - user can type new address and press enter or go
     - file navigator is draggable and resizable
     - apps and files are just iframes to the filepath in indexeddb
     - do not return an entire html document, just the HTML tags for this and the script tag
 `&p=NO MARKDOWN, BEGIN CODE:
+&p=UPDATE: if you haven't already
+    - the window has an input field that acts as addressbar
+    - user can type new address and the press enter or go button
+    - it listens for changes in the iframe URL so that the input field is in sync
+NO TALKING, NO MARDKOWN, BEGIN COMPLETE CODE:
 &p=UPDATE:
   - make windows draggable
   - resizeble borders
   - min/max button
+NO TALKING, NO MARDKOWN, BEGIN COMPLETE CODE:
+&p=UPDATE:
+  - make windows draggable
+  - resizeble borders
+  - min/max button
+  - make sure to add :root {color-scheme: light !important} to override the default (otehrwise you'll get weirdness like white on white)
 NO TALKING, NO MARDKOWN, BEGIN COMPLETE CODE:

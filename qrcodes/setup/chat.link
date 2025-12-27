@@ -17,17 +17,20 @@
     - use the global "os" instance
     - reuse this apps existing api/model, stored in "localStorage.k" and "localStorage.m"
     - use streaming mode for ai response
-    - add a textarea so that we can change the model or host
+    - add input fields for to update api key and model for this chat only (do not override localStorage)
     - like with this app, if the hostname is "google" then use the google api otherwise use the openai standard endpoint (like in the source)
-    - add a save button that opens a new tab to #chats/YYMMDD-HHMMSS?e=encodeURIComponent(chatHistory)
-      - this uses the operating systems echo hyperlink mechanism in a new browser tab to save
-      - do not save anything to the os yourself directly, only use the hyperlink method
-      - replace YYMMDD-HHMMSS with timestamp as the default filename
-      - once saved reuse the same timestamp (even if time changed), this way we don't create multiple copies of same chat
-      - allow option to set name but use timestamp as default (so user can add to it, dont just use placeholder actually set the value)
-      - replace spaces in filename with hyphens
-      - use "os.write" to save
-      - use dark mode
-      - CTRL+ENTER to submit textarea (along with submit button)
+    - remember to send the whole chat history (just send it as one message with USER: AI:
     - do not return an entire html document, just the HTML tags for this and the script tag
-`&p=NO MARKDOWN, BEGIN CODE:
+&p=UPDATE:
+  - this uses the operating systems echo hyperlink mechanism in a new browser tab to save
+  - do not save anything to the os yourself directly, only use the hyperlink method
+  - add field for filename, use YYMMDD-HHMMSS as default filename (don't just use placeholder actually show value)
+  - replace spaces in filename with hyphens
+  - use "os.write" to save
+  - CTRL+ENTER to submit textarea (along with submit button)
+NO TALKING, NO MARKDOWN, BEGIN CODE:
+&p=FINAL DRAFT - DOUBLE CHECK:
+  - please make sure you are sending the whole entire chat history, not most recent message
+  - create an array of every user prompt and ai response and always send those all out with every message
+  - visually separate user/ai messages
+NO TALKING, NO MARKDOWN, IF NO CHANGES ARE NEEDED RETURN EVERYTHING AS, BEGIN CODE:
