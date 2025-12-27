@@ -36,5 +36,11 @@ NO TALKING, NO MARDKOWN, BEGIN COMPLETE CODE:
   - make windows draggable
   - resizeble borders
   - min/max button
-  - make sure to add :root {color-scheme: light !important} to override the default (otehrwise you'll get weirdness like white on white)
+  - make sure to inject :root {color-scheme: light !important} into the iframe to override the default (otehrwise you'll get weirdness like white on white)
+    - make sure you are creating <style> element with the override
+    - make sure the <style> is injected INTO the iframe iframe.contentDocument || iframe.contentWindow.document
 NO TALKING, NO MARDKOWN, BEGIN COMPLETE CODE:
+&p=UPDATE:
+  - make sure folder functionality works, files with same path/to/file should be in same folder
+  - add scrollbars if there are so many they go offscreen
+NO TALKING, NO MARKDOWN, BEGIN COMPLETE CODE:

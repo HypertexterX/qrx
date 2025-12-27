@@ -20,45 +20,55 @@ export class LinkCard {
 
   async process() {
     this.rawContent = fs.readFileSync(this.filePath, 'utf8')
-    this.href = this.parseHref(this.rawContent)
-    await this.generateQR()
-  }
+    
+    // 1. Get the components (Base path vs Query String)
+    const { pathPart, rawQueryString } = this.parseComponents(this.rawContent)
 
-  parseHref(content) {
-    // Compress newlines to spaces for URL safety
-    const compressed = content.replace(/[\r\n]+/g, ' ').trim()
-    
-    const [base, ...rest] = compressed.split('?')
-    const qs = rest.join('?')
-    
-    // Clean up the base path to ensure it works in hrefs
-    let cleanBase = base.trim()
-    let href = ''
-
-    if (cleanBase.startsWith('#')) {
-      href = '/' + cleanBase
-    } else if (cleanBase.startsWith('/')) {
-      href = cleanBase
-    } else {
-      // Default to hash if just a filename is provided
-      href = '/#' + cleanBase
-    }
-    
-    if (qs) {
-      // Re-encode params to ensure validity
-      const params = qs.split('&').map(p => {
+    // 2. Create the HTML-safe version (Encoded)
+    // We strictly encode params here so they don't break HTML attributes
+    this.href = pathPart
+    if (rawQueryString) {
+      const encodedParams = rawQueryString.split('&').map(p => {
         const [k, ...v] = p.split('=')
         const val = v.join('=') 
         return `${k}=${encodeURIComponent(val)}`
       }).join('&')
-      href += '?' + params
+      this.href += '?' + encodedParams
+    }
+
+    // 3. Create the QR version (Raw)
+    // We only attach the raw query string. This saves massive amounts of space.
+    this.qrUrl = pathPart + (rawQueryString ? '?' + rawQueryString : '')
+
+    await this.generateQR()
+  }
+
+  // Helper to clean structure but keep raw data
+  parseComponents(content) {
+    // Compress newlines to spaces
+    const compressed = content.replace(/[\r\n]+/g, ' ').trim()
+    
+    const [base, ...rest] = compressed.split('?')
+    const rawQueryString = rest.join('?') // Join back if there were multiple ? (rare but possible)
+    
+    // Clean up the base path structure
+    let cleanBase = base.trim()
+    let pathPart = ''
+
+    if (cleanBase.startsWith('#')) {
+      pathPart = '/' + cleanBase
+    } else if (cleanBase.startsWith('/')) {
+      pathPart = cleanBase
+    } else {
+      pathPart = '/#' + cleanBase
     }
     
-    return href
+    return { pathPart, rawQueryString }
   }
 
   async generateQR() {
-    await qrcode.toFile(this.qrDiskPath, this.href, {
+    // Use this.qrUrl (the raw version) instead of this.href
+    await qrcode.toFile(this.qrDiskPath, this.qrUrl, {
       errorCorrectionLevel: 'L',
       margin: 0,
       scale: 4,
@@ -67,10 +77,7 @@ export class LinkCard {
   }
 
   render() {
-    // Escape HTML for display in <pre> tags
     const safeCode = this.rawContent.replace(/</g, '&lt;')
-    
-    // Escape single quotes for the JS function call
     const safeHref = this.href.replace(/'/g, "\\'")
 
     return `
